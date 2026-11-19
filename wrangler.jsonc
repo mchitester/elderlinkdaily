@@ -1,0 +1,8 @@
+{
+  // Elder Link Daily — static site served by the Cloudflare Worker "super-violet-6c21"
+  "name": "super-violet-6c21",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./public"
+  }
+}
