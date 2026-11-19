@@ -461,7 +461,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.0',APP_DATE='November 19, 2026';
+const APP_VERSION='5.1',APP_DATE='November 19, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -1805,18 +1805,18 @@ function singShow(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.pus
   const cd=h('div',{class:'sg-cd',style:'display:none'});const lines=[];s.v.forEach((v,k)=>{const mv=s.m?s.m[k%s.m.length]:null;v.forEach((l,j)=>lines.push({l,k,mel:mv&&mv[j%mv.length]}));lines.push({gap:1})});lines.pop();let music=s.m&&store.get('singMusic',true);let beat=store.get('singBeat',.55);
   const els=lines.map(o=>o.gap?h('div',{class:'sg-gap'},'♪  ♫  ♪'):h('div',{class:'sg-line'},o.l));
   const pauseB=h('button',{class:'btn alt',onclick:()=>{paused=!paused;pauseB.textContent=paused?'▶ Keep going':'⏸ Pause';if(paused){clearTimeout(tm);if(tuneStop)tuneStop()}else step()}},'⏸ Pause');
-  const close=()=>{clearTimeout(tm);if(tuneStop)tuneStop();lauForce=false;lauHide();layer.remove();playSec=0;store.set('playSec',0)};
+  const close=()=>{clearTimeout(tm);if(tuneStop)tuneStop();lauForce=false;lauHide();try{const b=lauEl&&lauEl.querySelector('.lau-bub');if(b){clearTimeout(b._t);b.classList.remove('on')}}catch(e){}layer.remove();playSec=0;store.set('playSec',0)};
   layer.append(h('div',{class:'wrap',style:'max-width:800px;margin:0 auto;padding:20px 18px 140px;text-align:center'},
     h('div',{class:'brand',style:'margin-bottom:6px'},'Sing-along'),h('h2',{class:'sg-title'},`🎶 ${s.t}`),
     h('div',{class:'row',style:'margin:6px 0 18px'},h('button',{class:'btn alt',onclick:()=>{pace=Math.min(7000,pace+700);store.set('singPace',pace);beat=Math.min(.9,beat+.08);store.set('singBeat',beat)}},'🐢 Slower'),h('button',{class:'btn alt',onclick:()=>{pace=Math.max(2400,pace-700);store.set('singPace',pace);beat=Math.max(.35,beat-.08);store.set('singBeat',beat)}},'🐇 Faster'),s.m?h('button',{class:'btn alt',onclick:e=>{music=!music;store.set('singMusic',music);e.target.textContent=music?'🔊 Music on':'🔇 Music off';if(!music&&tuneStop)tuneStop()}},music?'🔊 Music on':'🔇 Music off'):null),
     s.m?null:h('div',{class:'msg small'},'This one has words only. Tap 🎵 Play the music to hear it.'),h('div',{class:'sg-words'},els),cd,
     h('div',{class:'row',style:'margin-top:26px'},pauseB,h('button',{class:'btn alt',onclick:()=>{i=-1;paused=false;pauseB.textContent='⏸ Pause';step()}},'↺ Sing it again'),h('button',{class:'btn alt',onclick:()=>nextSong()},'⏭ Next song'),h('button',{class:'btn alt',onclick:()=>{close();singMenu()}},'📋 Song list'),
       h('a',{class:'btn alt',href:'https://www.youtube.com/results?search_query='+encodeURIComponent(s.t+' sing along'),target:'_blank',style:'text-decoration:none'},'🎵 Play the music'),
-      h('button',{class:'btn good',onclick:()=>{close();beep('win');modal(`Beautiful singing, ${N()}! 🎶`,'That was lovely. Laurie gives you a standing ovation!',[['Thank you!',()=>{},'good']])}},'✔ All done'))));
+      h('button',{class:'btn good',onclick:()=>{close();home()}},'✔ All done'))));
   lauForce=true;lauShow();try{lauEl.querySelector('.lau-prop').textContent='🎤'}catch(e){}
   function step(){clearTimeout(tm);if(paused)return;i++;els.forEach((e,k)=>e.classList.toggle('on',k===i));els.forEach((e,k)=>e.classList.toggle('past',k<i));
     if(i<els.length){els[i].scrollIntoView({behavior:'smooth',block:'center'});let d=lines[i].gap?1800:pace;if(music&&lines[i].mel){const sec=playTune(lines[i].mel,beat);if(sec)d=sec*1000+250}tm=setTimeout(step,d)}
-    else{tm=null;if(lauEl)lauQuip(true);if(S.singAuto===false)return;let n=6;cd.style.display='block';
+    else{tm=null;if(S.singAuto===false)return;let n=6;cd.style.display='block';
       const tick=()=>{if(!layer.isConnected||paused){cd.style.display='none';return}n--;cd.textContent=`🎶 Next song in ${n}…  (tap ⏸ Pause to stop)`;if(n<=0){nextSong()}else tm=setTimeout(tick,1000)};tick();cd.scrollIntoView({behavior:'smooth',block:'center'})}}
   function nextSong(){clearTimeout(tm);if(tuneStop)tuneStop();layer.remove();singShow(pickSong())}
   setTimeout(step,1200)}
