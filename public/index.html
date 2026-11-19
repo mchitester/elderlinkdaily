@@ -446,7 +446,7 @@ function newsMore(n){const layer=h('div',{class:'exlayer'});document.body.append
   layer.scrollTop=0;beep('tap')}
 function newsBox(){const box=h('div',{class:'news'});let i=store.get('newsIdx',0)%NEWS.items.length;
   const draw=()=>{const n=NEWS.items[i];box.innerHTML='';box.append(h('div',{class:'nh'},`📰 News break · ${NEWS.week}`),h('div',{class:'nt'},`${n.i} ${n.t}`),h('p',{class:'nb'},n.b),
-    h('div',{class:'row',style:'justify-content:flex-start'},h('button',{class:'btn alt',style:'min-height:52px;font-size:.95rem',onclick:()=>{i=(i+1)%NEWS.items.length;store.set('newsIdx',i);beep('tap');draw()}},'Next story ›'),n.m?h('button',{class:'btn',style:'min-height:52px;font-size:.95rem',onclick:()=>newsMore(n)},'📖 Read more'):null,speakBtn(()=>n.t+'. '+n.b)))};
+    h('div',{class:'row',style:'justify-content:flex-start'},h('button',{class:'btn alt',style:'min-height:52px;font-size:.95rem',onclick:()=>{i=(i+1)%NEWS.items.length;store.set('newsIdx',i);beep('tap');draw()}},'Next story ›'),n.m?h('button',{class:'btn',style:'min-height:52px;font-size:.95rem',onclick:()=>newsMore(n)},'📖 Read more of this story'):null,speakBtn(()=>n.t+'. '+n.b)))};
   store.set('newsIdx',(i+1)%NEWS.items.length);draw();return box}
 
 /* ---------- home / settings ---------- */
@@ -464,7 +464,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.2',APP_DATE='November 19, 2026';
+const APP_VERSION='5.3',APP_DATE='November 19, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
