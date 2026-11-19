@@ -303,10 +303,13 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 
 .lau{position:fixed;right:14px;bottom:14px;z-index:150;display:flex;align-items:flex-end;gap:6px;pointer-events:none;transform:translateY(calc(100% + 40px));visibility:hidden;transition:transform .45s cubic-bezier(.3,1.4,.5,1),visibility 0s .45s}
 .mt.gone{opacity:0;transform:scale(.5) rotate(8deg);pointer-events:none;transition:opacity .45s,transform .45s}
-.lau.show{transform:none;pointer-events:auto;visibility:visible;transition:transform .45s cubic-bezier(.3,1.4,.5,1),visibility 0s}
+.lau.show{transform:none;pointer-events:none;visibility:visible;transition:transform .45s cubic-bezier(.3,1.4,.5,1),visibility 0s}
 .lau-fig{background:#fffdf8;border-radius:22px;padding:6px 8px 2px;box-shadow:0 0 0 3px var(--gold),0 12px 28px rgba(27,42,74,.3);cursor:pointer}
 .lau-bub{max-width:220px;background:#fff;color:var(--ink);font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;font-size:1.15rem;line-height:1.25;padding:10px 14px;border-radius:16px 16px 4px 16px;box-shadow:0 0 0 1.5px var(--goldl),0 8px 20px rgba(27,42,74,.2);margin-bottom:70px;opacity:0;transform:scale(.7);transform-origin:bottom right;transition:opacity .25s,transform .25s}
 .lau-bub.on{opacity:1;transform:none}
+.lau-bub{pointer-events:none}
+.lau.show .lau-fig{pointer-events:auto}
+.sing .wrap{padding-bottom:220px!important}
 .lau svg{display:block;overflow:visible}
 .lau svg g,.lau svg ellipse{transform-box:fill-box}
 .lau.show .lau-mouth{transform-origin:center;animation:lauTalk .18s ease-in-out infinite alternate}
@@ -461,7 +464,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.1',APP_DATE='November 19, 2026';
+const APP_VERSION='5.2',APP_DATE='November 19, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
