@@ -461,7 +461,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='4.7',APP_DATE='November 19, 2026';
+const APP_VERSION='4.8',APP_DATE='November 19, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -1408,7 +1408,7 @@ function lrc(){const body=frame('Left Right Center');
 const MEALS=[['Breakfast',8,0,'🍳'],['Lunch',11,30,'🥪'],['Dinner',17,0,'🍽️']];
 const fmtT=(hh,mm)=>new Date(2000,0,1,hh,mm).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 function nextMeal(){const d=new Date(),m=d.getHours()*60+d.getMinutes();const n=MEALS.find(x=>x[1]*60+x[2]>m);return n}
-function mealCheck(){if(!S.mealsOn)return;const d=new Date(),m=d.getHours()*60+d.getMinutes();
+function mealCheck(){if(Date.now()<quietUntil||document.querySelector('.splash'))return;if(!S.mealsOn)return;const d=new Date(),m=d.getHours()*60+d.getMinutes();
   for(const[name,hh,mm,ic]of MEALS){const t=hh*60+mm;const key=today()+name;if(m>=t-30&&m<t&&!store.get('meal_'+key,false)){
     if(document.querySelector('.ov,.exlayer'))return;store.set('meal_'+key,true);beep('good');say(`${N()}, ${name.toLowerCase()} is at ${fmtT(hh,mm)}. Time to get ready!`);
     modal(`${ic} ${name} is at ${fmtT(hh,mm)}`,`Time to start getting ready, ${N()}! Your game will be right here when you get back.`,[['OK, thanks!',()=>stopSay(),'good']],h('div',{style:'font-size:4rem'},'⏰'));return}}}
@@ -1416,7 +1416,7 @@ setInterval(mealCheck,30000);setTimeout(mealCheck,3000);
 
 /* ---------- shower check-in ---------- */
 const dayNum=k=>{const[y,m,d]=k.split('-').map(Number);return Math.round(new Date(y,m-1,d)/864e5)};
-function showerCheck(){if(!S.showerOn||document.querySelector('.ov,.exlayer'))return;const now=new Date(),hr=now.getHours();if(hr<9||hr>=19)return;
+function showerCheck(){if(Date.now()<quietUntil||document.querySelector('.splash'))return;if(!S.showerOn||document.querySelector('.ov,.exlayer'))return;const now=new Date(),hr=now.getHours();if(hr<9||hr>=19)return;
   const last=store.get('showerLast',null);if(last&&dayNum(today())-dayNum(last)<2)return;
   if(store.get('showerNo',null)===today())return;
   const asked=store.get('showerAskedAt',0);if(Date.now()-asked<3*3600e3)return;
@@ -1435,7 +1435,7 @@ const O2TIMES=[[9,30],[14,0],[19,0]];
 function o2log(v){const[all,d]=stat();d.o2=d.o2||[];d.o2.push({t:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),v});store.set('stats',all);statDirty=true}
 const O2_FIRST=30*60e3,O2_EVERY=3*3600e3;
 (function(){const n=store.get('o2Next',0);if(!n||n<Date.now())store.set('o2Next',Date.now()+O2_FIRST)})();
-function o2Check(){if(!S.o2On||document.querySelector('.ov,.exlayer'))return;const now=Date.now();
+function o2Check(){if(Date.now()<quietUntil||document.querySelector('.splash'))return;if(!S.o2On||document.querySelector('.ov,.exlayer'))return;const now=Date.now();
   if(now<store.get('o2Snooze',0))return;
   const re=store.get('o2Recheck',0);if(re&&now>=re){store.set('o2Recheck',0);o2Ask(true);return}
   if(now>=store.get('o2Next',now+O2_FIRST)){store.set('o2Next',now+O2_FIRST);o2Ask(false)}}
@@ -1453,7 +1453,7 @@ setInterval(o2Check,30000);setTimeout(o2Check,12000);
 
 /* ---------- call reminders ---------- */
 const CALL_WIN=[[13*60,18*60],[10*60,12*60]];
-function callCheck(){if(!S.callsOn||document.querySelector('.ov,.exlayer'))return;const list=(S.callers||[]).map(x=>(x||'').trim()).filter(Boolean);if(!list.length)return;
+function callCheck(){if(Date.now()<quietUntil||document.querySelector('.splash'))return;if(!S.callsOn||document.querySelector('.ov,.exlayer'))return;const list=(S.callers||[]).map(x=>(x||'').trim()).filter(Boolean);if(!list.length)return;
   if(Date.now()<store.get('callSnooze',0))return;const d=new Date(),m=d.getHours()*60+d.getMinutes();
   const wins=S.callsPerDay===2?[CALL_WIN[1],CALL_WIN[0]]:[CALL_WIN[0]];
   for(const[a,b]of wins){const key='call_'+today()+'_'+a;if(m>=a&&m<b&&!store.get(key,false)){callAsk(list,key,0);return}}}
@@ -1692,7 +1692,7 @@ function showSetup(){const body=frame('Her shows');const L=JSON.parse(JSON.strin
     msg,h('div',{class:'row',style:'margin:18px 0'},h('button',{class:'btn good',onclick:save},'Save'),h('button',{class:'btn alt',onclick:settings},'Back to Settings')));
   function save(){S.shows=rows.map(r=>({n:r.n.value.trim(),u:r.u.value.trim(),t:r.t.value,ic:r.s.ic||'📺'}));S.movieDay=+md.value;S.movieTime=mt.value||'19:00';saveS();msg.textContent='Saved ✔';beep('good')}}
 
-function showCheck(){if(document.querySelector('.ov,.exlayer'))return;const now=new Date(),mins=now.getHours()*60+now.getMinutes(),d=today();
+function showCheck(){if(Date.now()<quietUntil||document.querySelector('.splash'))return;if(document.querySelector('.ov,.exlayer'))return;const now=new Date(),mins=now.getHours()*60+now.getMinutes(),d=today();
   const toMin=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
   for(const s of myShows()){if(!s.t)continue;const k='showAsk_'+s.n;const tm=toMin(s.t);
     if(mins>=tm&&mins<tm+60&&store.get(k,'')!==d){store.set(k,d);beep('good');say(`It’s time for ${s.n}, ${N()}!`);
@@ -1848,6 +1848,7 @@ function spScene(n,V){const m=h('div',{class:'sp-anim'});const line=V.line.repla
   m.innerHTML=(n===1?'<div class="sp-show">Today\u2019s little show: <b>'+V.title+'</b></div>':'')+'<svg class="sp-scene'+(V.fast?' fast':'')+(V.dance?' dance':'')+'" viewBox="0 0 300 140" width="300" height="140" style="--rot:'+V.rot+'deg;--wt:'+(V.rot>0?'28deg':'-12deg')+'">'+FLOOR+(n===1?V.prop:'')+dor.replace('<g class="dfall">','<g class="dfall">'+skates)+
     (n===1?'<g class="dizzy"><text x="'+(V.rot<0?92:196)+'" y="112" font-size="11" fill="#ffd76a">★ ✦ ★</text></g><text x="210" y="70" class="oops" fill="#d9bd78" font-family="Georgia,serif" font-style="italic" font-size="20">'+V.cap+'</text>':REST2+'<text x="300" y="30" text-anchor="end" class="hyg" fill="#d9bd78" font-family="Georgia,serif" font-style="italic" font-size="15">'+line+'</text>')+'</svg>';
   return m}
+let quietUntil=0;
 function splash(){const vi=store.get('spIdx',0);store.set('spIdx',vi+1);const V=SP_VARIANTS[vi%SP_VARIANTS.length];const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const d=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const L=h('div',{class:'splash'});let gone=false;
@@ -1861,7 +1862,7 @@ function splash(){const vi=store.get('spIdx',0);store.set('spIdx',vi+1);const V=
   if(narr){setTimeout(()=>{if(!L.classList.contains('step2'))L.classList.add('stepN')},3600);setTimeout(()=>{L.classList.add('step2')},8200)}
   else setTimeout(()=>L.classList.add('step2'),3600);
   const auto=setTimeout(go,20000);
-  function go(){if(gone)return;gone=true;clearTimeout(auto);try{beep('good')}catch(e){}
+  function go(){if(gone)return;gone=true;clearTimeout(auto);quietUntil=Date.now()+60000;document.querySelectorAll('.ov,.exlayer').forEach(x=>x.remove());try{home()}catch(e){}try{beep('good')}catch(e){}
     if(S.speak)try{say(`${g}, ${N()}! Today is ${d}.`)}catch(e){}
     L.classList.add('out');setTimeout(()=>L.remove(),700)}
   L.addEventListener('click',e=>{if(L.classList.contains('step2'))go();else if(narr&&!L.classList.contains('stepN'))L.classList.add('stepN');else{L.classList.add('step2')}})}
