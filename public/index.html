@@ -345,6 +345,27 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .onb-dec button{font:inherit;font-size:1.15rem;padding:12px 18px;border-radius:999px;border:1.5px solid rgba(217,189,120,.7);background:rgba(255,255,255,.06);color:#fff;cursor:pointer}
 .sg-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:12px 8px;margin:4px -18px 14px;background:rgba(247,242,232,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);box-shadow:0 6px 14px rgba(27,42,74,.08)}
 .sg-bar .btn{min-height:56px;font-size:1.05rem;padding:10px 18px}
+
+.homegrid{padding-top:10px}
+.hello{position:relative}
+.gear{position:absolute;top:14px;right:14px;z-index:2;width:52px;height:52px;border-radius:50%;border:1.5px solid var(--goldl);background:var(--card);font-size:1.5rem;color:var(--accent);cursor:pointer}
+.playbox{text-align:center;margin:14px 0 6px}
+.playbtn{font-size:1.7rem!important;min-width:320px;min-height:100px;border-radius:24px!important}
+.homebtns{margin-top:14px}
+.homebtns .btn{font-size:1.3rem;min-height:68px}
+.homegrid .news .btn{min-height:48px!important;font-size:1rem!important;padding:8px 14px}
+.homegrid .news .row,.homegrid .news>div:last-child{gap:8px}
+@media (orientation:portrait){.homegrid .news p,.homegrid .news .nb{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
+@media (max-height:1150px){.homegrid .hello{margin:4px 0 14px;padding:18px 16px 14px}.homegrid .hi{font-size:2.05rem;margin-top:4px}.homegrid .today{margin:8px 10px 6px!important}.homegrid .news{margin:0 0 6px}}
+@media (orientation:landscape) and (min-width:900px){
+ .homegrid{max-width:1180px!important;display:grid;grid-template-columns:1.05fr 1fr;column-gap:22px;align-items:start}
+ .homeR{display:contents}
+ .homegrid .hello{margin:0;grid-column:1;grid-row:1}
+ .homegrid .news{margin:0;grid-column:2;grid-row:1 / span 3}
+ .homegrid .playbox{grid-column:1;grid-row:2;margin:10px 0 0}
+ .homegrid .homebtns{grid-column:1;grid-row:3;margin-top:10px}
+ .playbtn{min-height:84px}
+}
 </style>
 </head>
 <body>
@@ -466,17 +487,19 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.4',APP_DATE='November 19, 2026';
+const APP_VERSION='5.5',APP_DATE='November 19, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
-  app.append(h('div',{class:'wrap'},
-    h('div',{class:'hello'},h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
+  app.append(h('div',{class:'wrap homegrid'},
+    h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
       h('div',{class:'stars'},wins?`⭐ You've won ${wins} game${wins>1?'s':''} today!`:S.autoplay?'Ready for a game?':'What would you like to play?')),
-    newsBox(),
-    S.autoplay?(()=>{sessionStarted=false;featured=pickFeatured();return h('div',{style:'text-align:center;margin:18px 0 8px'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good',style:'font-size:1.7rem;min-width:320px;min-height:110px;border-radius:24px',onclick:nextGame},"▶ Let's play!"))})():null,
+    h('div',{class:'homeR'},newsBox(),
+    S.autoplay?(()=>{sessionStarted=false;featured=pickFeatured();return h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))})():null,
     S.autoplay?null:h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
-    h('div',{class:'row',style:'margin-top:20px'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along')),h('div',{class:'row',style:'margin-top:26px'},h('button',{class:'btn alt',onclick:settings},'⚙︎ Settings'))));window.scrollTo(0,0)}
+    h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along')))));window.scrollTo(0,0);fitHome()}
+function fitHome(){const el=document.querySelector('.homegrid');if(!el)return;el.style.zoom='';requestAnimationFrame(()=>{const H=document.documentElement.scrollHeight,V=window.innerHeight;if(H>V+4){el.style.zoom=Math.max(.72,(V-8)/H).toFixed(3)}})}
+addEventListener('resize',()=>setTimeout(fitHome,150));addEventListener('orientationchange',()=>setTimeout(fitHome,300));
 function welcome(){app.innerHTML='';const inp=h('input',{type:'text',placeholder:'Her first name',autocomplete:'off'});
   app.append(h('div',{class:'wrap'},h('div',{class:'hello'},h('div',{class:'brand'},'🌷 Elder Link Daily 🌷'),h('div',{class:'hi'},'Welcome!')),
     h('div',{class:'card-box'},h('div',{class:'field'},h('label',{},'Who is playing today?'),inp),
