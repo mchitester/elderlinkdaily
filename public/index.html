@@ -366,6 +366,7 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
  .homegrid .homebtns{grid-column:1;grid-row:3;margin-top:10px}
  .playbtn{min-height:84px}
 }
+.sg-all .sg-line{opacity:1;color:var(--ink)}.sg-prog{height:10px;border-radius:6px;background:rgba(0,0,0,.08);margin:6px auto 16px;max-width:520px;overflow:hidden}.sg-prog i{display:block;height:100%;width:0;background:var(--gold,#b8892f);transition:width .4s linear}.sg-credit{opacity:.75}
 </style>
 </head>
 <body>
@@ -487,7 +488,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.5',APP_DATE='November 19, 2026';
+const APP_VERSION='5.6',APP_DATE='November 20, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -1814,11 +1815,27 @@ const SONGS=[
  {t:'It Is Well with My Soul',v:[['When peace, like a river, attendeth my way,','When sorrows like sea billows roll;','Whatever my lot, Thou hast taught me to say,','It is well, it is well with my soul.'],['It is well with my soul,','It is well, it is well with my soul.']]},
  {t:'Rock of Ages',v:[['Rock of Ages, cleft for me,','Let me hide myself in Thee;','Let the water and the blood,','From Thy wounded side which flowed,','Be of sin the double cure,','Save from wrath and make me pure.']]}];
 function singSeason(){const d=new Date(),m=d.getMonth(),day=d.getDate();return m===10||m===11||(m===0&&day<=6)}
+const REC={
+ 'Silent Night':{f:'silent-night',by:'Felix Arndt, piano',yr:1914},
+ 'Joy to the World':{f:'joy',by:'U.S. Navy Band'},
+ 'O Come, All Ye Faithful':{f:'o-come',by:'Richard Jose',yr:1904},
+ 'Hark! The Herald Angels Sing':{f:'hark',by:'Columbia Stellar Quartette',yr:1919},
+ 'Away in a Manger':{f:'away',by:'U.S. Marine Band'},
+ 'O Little Town of Bethlehem':{f:'little-town',by:'Columbia Mixed Double Quartette',yr:1917},
+ 'We Wish You a Merry Christmas':{f:'we-wish',by:'U.S. Navy Band'},
+ 'Amazing Grace':{f:'amazing-grace',by:'U.S. Air Force Band, bagpipes'},
+ 'What a Friend We Have in Jesus':{f:'what-a-friend',by:'Mr. & Mrs. William Wheeler',yr:1915},
+ 'Holy, Holy, Holy':{f:'holy',by:'Trinity Choir',yr:1904},
+ 'It Is Well with My Soul':{f:'it-is-well',by:'Handel Mixed Quartet',yr:1906},
+ 'Rock of Ages':{f:'rock-of-ages',by:'Lyric Quartet',yr:1906}};
+const MUSIC_BASE=(location.protocol.startsWith('http')&&/elderlink|localhost|127\.0/.test(location.hostname))?'/music/':'https://elderlinkdaily.com/music/';
+let recAudio=null;function recEl(){if(!recAudio){recAudio=new Audio();recAudio.preload='auto';recAudio.setAttribute('playsinline','')}return recAudio}
+function recStop(){if(recAudio){try{recAudio.pause()}catch(e){}recAudio.onended=null;recAudio.ontimeupdate=null}}
 function pickSong(){const done=store.get('singDone',[]);const xmas=singSeason();
   let pool=SONGS.filter(s=>xmas?(s.x||Math.random()<.25):!s.x);let fresh=pool.filter(s=>!done.includes(s.t));if(!fresh.length){store.set('singDone',[]);fresh=pool}return pick(fresh)}
 
-function singMenu(){const body=frame('Sing-along');const byM=(a,b)=>(b.m?1:0)-(a.m?1:0);const xm=SONGS.filter(s=>s.x).sort(byM),hy=SONGS.filter(s=>!s.x).sort(byM);
-  const tile=s=>h('button',{class:'gtile',onclick:()=>{beep('tap');singShow(s)}},h('div',{class:'ic'},s.x?'🎄':'⛪'),h('div',{},h('b',{},s.t),h('span',{},(s.x?'Christmas carol':'Hymn')+(s.m?' · 🎵 with music':''))));
+function singMenu(){const body=frame('Sing-along');const byM=(a,b)=>((REC[b.t]?2:0)+(b.m?1:0))-((REC[a.t]?2:0)+(a.m?1:0));const xm=SONGS.filter(s=>s.x).sort(byM),hy=SONGS.filter(s=>!s.x).sort(byM);
+  const tile=s=>h('button',{class:'gtile',onclick:()=>{beep('tap');singShow(s)}},h('div',{class:'ic'},s.x?'🎄':'⛪'),h('div',{},h('b',{},s.t),h('span',{},(s.x?'Christmas carol':'Hymn')+(REC[s.t]?' · 🎺 real recording':s.m?' · 🎵 with music':''))));
   const sec=(t,L)=>[h('h3',{style:'font-family:var(--serif);font-size:1.6rem;margin:22px 0 10px;text-align:center'},t),h('div',{class:'games'},L.map(tile))];
   const first=singSeason()?[sec('🎄 Christmas Carols',xm),sec('⛪ Hymns',hy)]:[sec('⛪ Hymns',hy),sec('🎄 Christmas Carols',xm)];
   body.append(h('div',{class:'msg'},`Pick a song to sing, ${N()}! The words light up one line at a time.`),
@@ -1828,7 +1845,7 @@ function singAsk(){if(S.singOn===false)return false;const s=pickSong();beep('goo
   say(`Sing-along time, ${N()}! Let's sing ${s.t}.`);
   modal(`🎶 Sing-along time, ${N()}!`,`Today’s song is “${s.t}.” The words will light up one line at a time. Sing out!`,[['🎤 Let’s sing!',()=>{stopSay();singShow(s)},'good'],['🎵 Pick a different song',()=>{stopSay();singMenu()},'alt'],['Maybe later',()=>stopSay(),'alt']],h('div',{style:'font-size:3.5rem'},singSeason()?'🎄':'⛪'));return true}
 let lauForce=false;
-function singShow(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push(s.t);store.set('singDone',d)}statAdd('songs');
+function singShow(s){if(REC[s.t]&&store.get('singReal',true))return singRec(s);recStop();const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push(s.t);store.set('singDone',d)}statAdd('songs');
   const layer=h('div',{class:'exlayer sing'});document.body.append(layer);let pace=store.get('singPace',4200),i=-1,tm=null,paused=false;
   const cd=h('div',{class:'sg-cd',style:'display:none'});const lines=[];s.v.forEach((v,k)=>{const mv=s.m?s.m[k%s.m.length]:null;v.forEach((l,j)=>lines.push({l,k,mel:mv&&mv[j%mv.length]}));lines.push({gap:1})});lines.pop();let music=s.m&&store.get('singMusic',true);let beat=store.get('singBeat',.55);
   const els=lines.map(o=>o.gap?h('div',{class:'sg-gap'},'♪  ♫  ♪'):h('div',{class:'sg-line'},o.l));
@@ -1837,7 +1854,7 @@ function singShow(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.pus
   layer.append(h('div',{class:'wrap',style:'max-width:800px;margin:0 auto;padding:20px 18px 140px;text-align:center'},
     h('div',{class:'brand',style:'margin-bottom:6px'},'Sing-along'),h('h2',{class:'sg-title'},`🎶 ${s.t}`),
     h('div',{class:'sg-bar'},pauseB,h('button',{class:'btn alt',onclick:()=>nextSong()},'⏭ Next song'),h('button',{class:'btn alt',onclick:()=>{close();singMenu()}},'📋 Song list'),h('button',{class:'btn good',onclick:()=>{close();home()}},'✔ All done')),
-    h('div',{class:'row',style:'margin:6px 0 18px'},h('button',{class:'btn alt',onclick:()=>{pace=Math.min(7000,pace+700);store.set('singPace',pace);beat=Math.min(.9,beat+.08);store.set('singBeat',beat)}},'🐢 Slower'),h('button',{class:'btn alt',onclick:()=>{pace=Math.max(2400,pace-700);store.set('singPace',pace);beat=Math.max(.35,beat-.08);store.set('singBeat',beat)}},'🐇 Faster'),s.m?h('button',{class:'btn alt',onclick:e=>{music=!music;store.set('singMusic',music);e.target.textContent=music?'🔊 Music on':'🔇 Music off';if(!music&&tuneStop)tuneStop()}},music?'🔊 Music on':'🔇 Music off'):null),
+    h('div',{class:'row',style:'margin:6px 0 18px'},h('button',{class:'btn alt',onclick:()=>{pace=Math.min(7000,pace+700);store.set('singPace',pace);beat=Math.min(.9,beat+.08);store.set('singBeat',beat)}},'🐢 Slower'),h('button',{class:'btn alt',onclick:()=>{pace=Math.max(2400,pace-700);store.set('singPace',pace);beat=Math.max(.35,beat-.08);store.set('singBeat',beat)}},'🐇 Faster'),REC[s.t]?h('button',{class:'btn alt',onclick:()=>{store.set('singReal',true);close();singShow(s)}},'🎺 Real recording'):null,s.m?h('button',{class:'btn alt',onclick:e=>{music=!music;store.set('singMusic',music);e.target.textContent=music?'🔊 Music on':'🔇 Music off';if(!music&&tuneStop)tuneStop()}},music?'🔊 Music on':'🔇 Music off'):null),
     s.m?null:h('div',{class:'msg small'},'This one has words only. Tap 🎵 Play the music to hear it.'),h('div',{class:'sg-words'},els),cd,
     h('div',{class:'row',style:'margin-top:26px'},h('button',{class:'btn alt',onclick:()=>{i=-1;paused=false;pauseB.textContent='⏸ Pause';step()}},'↺ Sing it again'),
       h('a',{class:'btn alt',href:'https://www.youtube.com/results?search_query='+encodeURIComponent(s.t+' sing along'),target:'_blank',style:'text-decoration:none'},'🎵 Play the music'))));
@@ -1846,8 +1863,36 @@ function singShow(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.pus
     if(i<els.length){els[i].scrollIntoView({behavior:'smooth',block:'center'});let d=lines[i].gap?1800:pace;if(music&&lines[i].mel){const sec=playTune(lines[i].mel,beat);if(sec)d=sec*1000+250}tm=setTimeout(step,d)}
     else{tm=null;if(S.singAuto===false)return;let n=6;cd.style.display='block';
       const tick=()=>{if(!layer.isConnected||paused){cd.style.display='none';return}n--;cd.textContent=`🎶 Next song in ${n}…  (tap ⏸ Pause to stop)`;if(n<=0){nextSong()}else tm=setTimeout(tick,1000)};tick();cd.scrollIntoView({behavior:'smooth',block:'center'})}}
-  function nextSong(){clearTimeout(tm);if(tuneStop)tuneStop();layer.remove();singShow(pickSong())}
+  function nextSong(){clearTimeout(tm);if(tuneStop)tuneStop();lauForce=false;layer.remove();singShow(pickSong())}
   setTimeout(step,1200)}
+
+function singRec(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push(s.t);store.set('singDone',d)}statAdd('songs');if(tuneStop)tuneStop();
+  const R=REC[s.t],a=recEl();recStop();let rate=store.get('singRate',1),paused=false,tm=null;
+  const layer=h('div',{class:'exlayer sing'});document.body.append(layer);
+  const cd=h('div',{class:'sg-cd',style:'display:none'});
+  const words=h('div',{class:'sg-words sg-all'});s.v.forEach((v,k)=>{if(k)words.append(h('div',{class:'sg-gap'},'♪  ♫  ♪'));v.forEach(l=>words.append(h('div',{class:'sg-line'},l)))});
+  const prog=h('div',{class:'sg-prog'},h('i',{}));
+  const startB=h('button',{class:'btn good',style:'font-size:1.5rem;min-height:76px;display:none;margin:10px auto',onclick:()=>{startB.style.display='none';play()}},'▶ Start the music');
+  const pauseB=h('button',{class:'btn alt',onclick:()=>{paused=!paused;pauseB.textContent=paused?'▶ Keep going':'⏸ Pause';if(paused)a.pause();else play()}},'⏸ Pause');
+  const close=()=>{clearTimeout(tm);recStop();lauForce=false;lauHide();try{const b=lauEl&&lauEl.querySelector('.lau-bub');if(b){clearTimeout(b._t);b.classList.remove('on')}}catch(e){}layer.remove();playSec=0;store.set('playSec',0)};
+  const setRate=r=>{rate=Math.round(r*100)/100;store.set('singRate',rate);a.playbackRate=rate;try{a.preservesPitch=true;a.webkitPreservesPitch=true}catch(e){}};
+  layer.append(h('div',{class:'wrap',style:'max-width:800px;margin:0 auto;padding:20px 18px 140px;text-align:center'},
+    h('div',{class:'brand',style:'margin-bottom:6px'},'Sing-along'),h('h2',{class:'sg-title'},`🎶 ${s.t}`),
+    h('div',{class:'sg-bar'},pauseB,h('button',{class:'btn alt',onclick:()=>nextSong()},'⏭ Next song'),h('button',{class:'btn alt',onclick:()=>{close();singMenu()}},'📋 Song list'),h('button',{class:'btn good',onclick:()=>{close();home()}},'✔ All done')),
+    h('div',{class:'row',style:'margin:6px 0 10px'},h('button',{class:'btn alt',onclick:()=>setRate(Math.max(.8,rate-.05))},'🐢 Slower'),h('button',{class:'btn alt',onclick:()=>setRate(Math.min(1.15,rate+.05))},'🐇 Faster'),
+      s.m?h('button',{class:'btn alt',onclick:()=>{store.set('singReal',false);close();singShow(s)}},'🎵 Music box'):null),
+    h('div',{class:'msg small sg-credit'},`🎺 Real recording: ${R.by}${R.yr?', '+R.yr:''}`),prog,startB,words,cd,
+    h('div',{class:'row',style:'margin-top:26px'},h('button',{class:'btn alt',onclick:()=>{a.currentTime=0;paused=false;pauseB.textContent='⏸ Pause';play()}},'↺ Sing it again'))));
+  lauForce=true;lauShow();try{lauEl.querySelector('.lau-prop').textContent='🎤'}catch(e){}
+  function play(){cd.style.display='none';clearTimeout(tm);const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{startB.style.display='block'})}
+  a.src=MUSIC_BASE+R.f+'.mp3';setRate(rate);
+  a.ontimeupdate=()=>{if(!layer.isConnected)return;const f=a.duration?a.currentTime/a.duration:0;prog.firstChild.style.width=(f*100)+'%';
+    const max=words.scrollHeight-window.innerHeight*.45;const top=words.offsetTop-window.innerHeight*.3+Math.max(0,max)*f;layer.scrollTo({top:Math.max(0,top),behavior:'smooth'})};
+  a.onended=()=>{if(!layer.isConnected)return;if(S.singAuto===false)return;let n=6;cd.style.display='block';
+    const tick=()=>{if(!layer.isConnected||paused){cd.style.display='none';return}n--;cd.textContent=`🎶 Next song in ${n}…  (tap ⏸ Pause to stop)`;if(n<=0){nextSong()}else tm=setTimeout(tick,1000)};tick();cd.scrollIntoView({behavior:'smooth',block:'center'})};
+  a.onerror=()=>{if(!layer.isConnected)return;store.set('singReal',false);close();singShow(s);store.set('singReal',true)};
+  function nextSong(){clearTimeout(tm);recStop();lauForce=false;layer.remove();singShow(pickSong())}
+  play()}
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
