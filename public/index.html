@@ -488,7 +488,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.6',APP_DATE='November 20, 2026';
+const APP_VERSION='5.7',APP_DATE='November 20, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -1827,7 +1827,10 @@ const REC={
  'What a Friend We Have in Jesus':{f:'what-a-friend',by:'Mr. & Mrs. William Wheeler',yr:1915},
  'Holy, Holy, Holy':{f:'holy',by:'Trinity Choir',yr:1904},
  'It Is Well with My Soul':{f:'it-is-well',by:'Handel Mixed Quartet',yr:1906},
- 'Rock of Ages':{f:'rock-of-ages',by:'Lyric Quartet',yr:1906}};
+ 'Rock of Ages':{f:'rock-of-ages',by:'Lyric Quartet',yr:1906},
+ 'The First Noel':{f:'first-noel',by:'Lyric Quartet',yr:1914},
+ 'Blessed Assurance':{f:'blessed',by:'Sookietex (public domain)'},
+ 'Angels We Have Heard on High':{f:'angels',by:'Jeremy Westcott & family (CC BY)'}};
 const MUSIC_BASE=(location.protocol.startsWith('http')&&/elderlink|localhost|127\.0/.test(location.hostname))?'/music/':'https://elderlinkdaily.com/music/';
 let recAudio=null;function recEl(){if(!recAudio){recAudio=new Audio();recAudio.preload='auto';recAudio.setAttribute('playsinline','')}return recAudio}
 function recStop(){if(recAudio){try{recAudio.pause()}catch(e){}recAudio.onended=null;recAudio.ontimeupdate=null}}
@@ -1884,7 +1887,8 @@ function singRec(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push
     h('div',{class:'msg small sg-credit'},`🎺 Real recording: ${R.by}${R.yr?', '+R.yr:''}`),prog,startB,words,cd,
     h('div',{class:'row',style:'margin-top:26px'},h('button',{class:'btn alt',onclick:()=>{a.currentTime=0;paused=false;pauseB.textContent='⏸ Pause';play()}},'↺ Sing it again'))));
   lauForce=true;lauShow();try{lauEl.querySelector('.lau-prop').textContent='🎤'}catch(e){}
-  function play(){cd.style.display='none';clearTimeout(tm);const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{startB.style.display='block'})}
+  function play(){cd.style.display='none';clearTimeout(tm);startB.style.display='none';const t0=a.currentTime;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{startB.style.display='block'});
+    setTimeout(()=>{if(layer.isConnected&&!paused&&(a.paused||a.currentTime<=t0+.05)){if(a.readyState<2){try{a.load()}catch(e){}}startB.style.display='block';startB.scrollIntoView({behavior:'smooth',block:'center'})}},5000)}
   a.src=MUSIC_BASE+R.f+'.mp3';setRate(rate);
   a.ontimeupdate=()=>{if(!layer.isConnected)return;const f=a.duration?a.currentTime/a.duration:0;prog.firstChild.style.width=(f*100)+'%';
     const max=words.scrollHeight-window.innerHeight*.45;const top=words.offsetTop-window.innerHeight*.3+Math.max(0,max)*f;layer.scrollTo({top:Math.max(0,top),behavior:'smooth'})};

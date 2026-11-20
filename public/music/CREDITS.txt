@@ -13,3 +13,7 @@ U.S. military bands (U.S. government works, public domain; via archive.org):
   we-wish.mp3        We Wish You a Merry Christmas - U.S. Navy Band ("Happy Holidays")
   away.mp3           Away in a Manger - U.S. Marine Band
   amazing-grace.mp3  Amazing Grace - U.S. Air Force Bands Program (bagpipes)
+  first-noel.mp3     The First Nowell - Lyric Quartet, 1914 (LOC National Jukebox)
+  blessed.mp3        Blessed Assurance - Sookietex, released to public domain (archive.org)
+  angels.mp3         Angels We Have Heard on High - Jeremy Westcott, CC BY 2.5 (archive.org)
+Old 78 recordings cleaned up (declick, hiss reduction) with ffmpeg.
