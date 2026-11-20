@@ -367,6 +367,7 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
  .playbtn{min-height:84px}
 }
 .sg-all .sg-line{opacity:1;color:var(--ink)}.sg-prog{height:10px;border-radius:6px;background:rgba(0,0,0,.08);margin:6px auto 16px;max-width:520px;overflow:hidden}.sg-prog i{display:block;height:100%;width:0;background:var(--gold,#b8892f);transition:width .4s linear}.sg-credit{opacity:.75}
+.ptsm{margin:6px auto 2px;max-width:420px;font-size:1.05rem;cursor:pointer}.pbar{height:10px;border-radius:6px;background:rgba(0,0,0,.08);overflow:hidden;margin-top:4px}.pbar i{display:block;height:100%;background:var(--gold);border-radius:6px}.pbar.big{height:18px;max-width:560px;margin:10px auto 14px}.ptoast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,40px);opacity:0;background:#1d2433;color:#fff;padding:14px 24px;border-radius:30px;font-size:1.3rem;z-index:9999;transition:all .5s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}.ptoast.on{opacity:1;transform:translate(-50%,0)}.gtile.locked{opacity:.6}.exlayer.movie{background:#000!important;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px}.exlayer.movie video{width:100%;max-height:78vh;background:#000}.mv-top{display:flex;gap:14px;align-items:center;justify-content:space-between;width:100%;max-width:1100px;color:#fff;font-size:1.3rem;padding:6px 10px 12px}
 </style>
 </head>
 <body>
@@ -488,17 +489,17 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.7',APP_DATE='November 20, 2026';
+const APP_VERSION='5.8',APP_DATE='November 20, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
   app.append(h('div',{class:'wrap homegrid'},
     h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
-      h('div',{class:'stars'},wins?`⭐ You've won ${wins} game${wins>1?'s':''} today!`:S.autoplay?'Ready for a game?':'What would you like to play?')),
+      ptsMeter(),h('div',{class:'stars'},wins?`⭐ You've won ${wins} game${wins>1?'s':''} today!`:S.autoplay?'Ready for a game?':'What would you like to play?')),
     h('div',{class:'homeR'},newsBox(),
     S.autoplay?(()=>{sessionStarted=false;featured=pickFeatured();return h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))})():null,
     S.autoplay?null:h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
-    h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along')))));window.scrollTo(0,0);fitHome()}
+    h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:movieNight},'🎟️ Movie Night')))));window.scrollTo(0,0);fitHome()}
 function fitHome(){const el=document.querySelector('.homegrid');if(!el)return;el.style.zoom='';requestAnimationFrame(()=>{const H=document.documentElement.scrollHeight,V=window.innerHeight;if(H>V+4){el.style.zoom=Math.max(.72,(V-8)/H).toFixed(3)}})}
 addEventListener('resize',()=>setTimeout(fitHome,150));addEventListener('orientationchange',()=>setTimeout(fitHome,300));
 function welcome(){app.innerHTML='';const inp=h('input',{type:'text',placeholder:'Her first name',autocomplete:'off'});
@@ -508,7 +509,7 @@ function welcome(){app.innerHTML='';const inp=h('input',{type:'text',placeholder
 function settings(){const body=frame('Settings');const f=(label,val,ph)=>{const i=h('input',{type:'text',value:val,placeholder:ph||''});return[h('div',{class:'field'},h('label',{},label),i),i]};
   const [fn,iN]=f('Player name',S.name);const [f1,i1]=f('Other player 1 (used in Crazy Eights too)',S.others[0]);const [f2,i2]=f('Other player 2',S.others[1]);const [f3,i3]=f('Other player 3',S.others[2]);const [fBorn,iBorn]=f('Year born (picks trivia, stories and movies from her era)',String(S.born||1934),'e.g. 1934');const [fNar,iNar]=f('Narrator announced at start (leave empty to skip)',S.narrator==null?'Laurie':S.narrator,'e.g. Laurie');
   const seg=(label,key,opts)=>{const box=h('div',{class:'seg'});const draw=()=>{box.innerHTML='';opts.forEach(([v,t])=>box.append(h('button',{class:'lv'+(S[key]===v?' on':''),onclick:()=>{S[key]=v;saveS();draw()}},t)))};draw();return h('div',{class:'field'},h('label',{},label),box)};
-  body.append(h('div',{class:'card-box'},fn,fBorn,f1,f2,f3,fNar,seg('Text size','size',[['L','Large'],['XL','Extra large']]),seg('Highlight cards that can be played','help',[[true,'On'],[false,'Off']]),seg('Sounds','sound',[[true,'On'],[false,'Off']]),seg('Games start automatically (she doesn\'t pick)','autoplay',[[true,'On'],[false,'Off']]),seg('Read questions and news out loud','speak',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:voicePick},'🗣️ Choose the reading voice')),seg('Meal reminders 30 minutes before breakfast (8:00), lunch (11:30) and dinner (5:00)','mealsOn',[[true,'On'],[false,'Off']]),seg('Ask if she showered (every other day once she says yes)','showerOn',[[true,'On'],[false,'Off']]),seg('Phone call reminders','callsOn',[[true,'On'],[false,'Off']]),seg('Call reminders per day','callsPerDay',[[1,'Once (afternoon)'],[2,'Twice (morning & afternoon)']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:rateGames},'⭐ Rate her games (1–5)')),h('div',{class:'field'},h('button',{class:'btn alt',onclick:callSetup},'📞 People to call (up to 10)')),seg('Oxygen check 30 minutes after she opens the app, then every 3 hours','o2On',[[true,'On'],[false,'Off']]),seg('Remind her to put on oxygen if below','o2Min',[[88,'88'],[90,'90'],[92,'92'],[94,'94'],[95,'95']]),seg('Story time (reads her a short story)','storyOn',[[true,'On'],[false,'Off']]),seg('Mystery break (she solves a short whodunit)','mystOn',[[true,'On'],[false,'Off']]),seg('Sing-along break (carols & hymns)','singOn',[[true,'On'],[false,'Off']]),seg('Sing-along: go on to the next song by itself','singAuto',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:showSetup},'📺 Her TV shows & Movie Night')),seg('Positive sayings & Bible verses','inspOn',[[true,'On'],[false,'Off']]),seg('Which kind','inspMix',[['both','Both'],['s','Sayings only'],['v','Bible verses only']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:inspFavs},'❤️ Her favorite sayings')),seg('Water reminder every 20 minutes of play','water',[[true,'On'],[false,'Off']]),seg('Pop-up breaks while playing (questions, stretch, news, sayings, stories)','breaks',[[true,'On'],[false,'Off']]),seg('Minutes of play between breaks','breakMin',[[3,'3'],[4,'4'],[5,'5'],[6,'6']]),h('div',{class:'field'},h('label',{},'For family'),h('button',{class:'btn alt',onclick:pickQuestions},'❓ Choose her trivia questions (Y / N)'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:famEditor},'👪 Add family questions'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:report},'📊 Activity report')),
+  body.append(h('div',{class:'card-box'},fn,fBorn,f1,f2,f3,fNar,seg('Text size','size',[['L','Large'],['XL','Extra large']]),seg('Highlight cards that can be played','help',[[true,'On'],[false,'Off']]),seg('Sounds','sound',[[true,'On'],[false,'Off']]),seg('Games start automatically (she doesn\'t pick)','autoplay',[[true,'On'],[false,'Off']]),seg('Read questions and news out loud','speak',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:voicePick},'🗣️ Choose the reading voice')),seg('Meal reminders 30 minutes before breakfast (8:00), lunch (11:30) and dinner (5:00)','mealsOn',[[true,'On'],[false,'Off']]),seg('Ask if she showered (every other day once she says yes)','showerOn',[[true,'On'],[false,'Off']]),seg('Phone call reminders','callsOn',[[true,'On'],[false,'Off']]),seg('Call reminders per day','callsPerDay',[[1,'Once (afternoon)'],[2,'Twice (morning & afternoon)']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:rateGames},'⭐ Rate her games (1–5)')),h('div',{class:'field'},h('button',{class:'btn alt',onclick:callSetup},'📞 People to call (up to 10)')),seg('Oxygen check 30 minutes after she opens the app, then every 3 hours','o2On',[[true,'On'],[false,'Off']]),seg('Remind her to put on oxygen if below','o2Min',[[88,'88'],[90,'90'],[92,'92'],[94,'94'],[95,'95']]),seg('Story time (reads her a short story)','storyOn',[[true,'On'],[false,'Off']]),seg('Mystery break (she solves a short whodunit)','mystOn',[[true,'On'],[false,'Off']]),seg('Movie Night needs a ticket (100 points)','movieFree',[[false,'Yes'],[true,'No, movies are free']]),seg('Sing-along break (carols & hymns)','singOn',[[true,'On'],[false,'Off']]),seg('Sing-along: go on to the next song by itself','singAuto',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:showSetup},'📺 Her TV shows & Movie Night')),seg('Positive sayings & Bible verses','inspOn',[[true,'On'],[false,'Off']]),seg('Which kind','inspMix',[['both','Both'],['s','Sayings only'],['v','Bible verses only']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:inspFavs},'❤️ Her favorite sayings')),seg('Water reminder every 20 minutes of play','water',[[true,'On'],[false,'Off']]),seg('Pop-up breaks while playing (questions, stretch, news, sayings, stories)','breaks',[[true,'On'],[false,'Off']]),seg('Minutes of play between breaks','breakMin',[[3,'3'],[4,'4'],[5,'5'],[6,'6']]),h('div',{class:'field'},h('label',{},'For family'),h('button',{class:'btn alt',onclick:pickQuestions},'❓ Choose her trivia questions (Y / N)'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:famEditor},'👪 Add family questions'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:report},'📊 Activity report')),
    h('div',{class:'row',style:'margin-top:16px'},h('button',{class:'btn good',onclick:()=>{S.name=iN.value.trim()||S.name;S.others=[i1.value,i2.value,i3.value].map(x=>x.trim());if(typeof iNar!=='undefined')S.narrator=iNar.value.trim();if(typeof iBorn!=='undefined'){const y=parseInt(iBorn.value);if(y>1900&&y<2010)S.born=y}saveS();home()}},'Save'))))}
 
 /* ---------- 1. Tile Match ---------- */
@@ -1057,7 +1058,7 @@ function speakBtn(t){if(!canSpeak)return null;return h('button',{class:'btn alt'
 
 /* ---------- daily activity stats ---------- */
 function stat(){const all=store.get('stats',{});const d=today();all[d]=all[d]||{play:0,games:0,wins:0,stretch:0,qr:0,qa:0,water:0};return[all,all[d]]}
-function statAdd(k,n){const[all,d]=stat();d[k]=(d[k]||0)+(n||1);const keys=Object.keys(all);if(keys.length>60)keys.slice(0,keys.length-60).forEach(x=>delete all[x]);store.set('stats',all);statDirty=true}
+function statAdd(k,n){const[all,d]=stat();d[k]=(d[k]||0)+(n||1);try{if(PTS[k])earnPts(k,PTS[k][0],PTS[k][1],d[k])}catch(e){}const keys=Object.keys(all);if(keys.length>60)keys.slice(0,keys.length-60).forEach(x=>delete all[x]);store.set('stats',all);statDirty=true}
 let statDirty=false,DB=null;
 (function initDB(k){try{if(window.claude&&claude.use){claude.use('db').then(d=>{DB=d}).catch(()=>{});return}}catch(e){}if(k<20)setTimeout(()=>initDB(k+1),1000)})(0);
 setInterval(()=>{if(!statDirty||!DB||!S.reportOn)return;statDirty=false;const[,d]=stat();
@@ -1492,7 +1493,7 @@ function callAsk(list,key,tries){let i=store.get('callIdx',0)%list.length;const 
   const text=tries?pick(URGE).replace(/\{w\}/g,who)+` ${who} is in your contacts.`:`Give ${who} a ring today, ${N()}. ${who} is in your contacts.`;
   say(tries?text:`${N()}, ${who} would love a phone call from you today!`);
   modal(title,text,[
-    ['I called! ✔',()=>{store.set(key,true);store.set('callIdx',i+1);const[all,dd]=stat();dd.calls=(dd.calls||[]).concat(who);store.set('stats',all);statDirty=true;stopSay();beep('win');modal('Wonderful!',`I bet ${who} loved hearing from you.`,[['OK',null,'good']],h('div'))},'good'],
+    ['I called! ✔',()=>{store.set(key,true);store.set('callIdx',i+1);const[all,dd]=stat();dd.calls=(dd.calls||[]).concat(who);store.set('stats',all);statDirty=true;try{earnPts('calls',20,3,dd.calls.length)}catch(e){}stopSay();beep('win');modal('Wonderful!',`I bet ${who} loved hearing from you.`,[['OK',null,'good']],h('div'))},'good'],
     ['Remind me in an hour',()=>{store.set('callSnooze',Date.now()+60*60e3);stopSay()},'alt'],
     ['Not today',()=>{store.set('callIdx',i+1);stopSay();
       if(tries<2&&list.length>1)setTimeout(()=>callAsk(list,key,tries+1),700);
@@ -1897,6 +1898,54 @@ function singRec(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push
   a.onerror=()=>{if(!layer.isConnected)return;store.set('singReal',false);close();singShow(s);store.set('singReal',true)};
   function nextSong(){clearTimeout(tm);recStop();lauForce=false;layer.remove();singShow(pickSong())}
   play()}
+
+/* ---------- points & Movie Night ---------- */
+const PTS={wins:[10,10],songs:[10,3],shower:[20,1],stretch:[5,4],water:[2,4],myst:[10,3],stories:[5,3],qr:[2,10]};
+const PTS_NEED=100;
+const PTS_WHY={wins:'winning a game',songs:'singing a song',shower:'taking a shower',stretch:'stretching',water:'drinking water',myst:'solving a mystery',stories:'reading a story',qr:'a right answer',calls:'calling family'};
+function earnPts(k,n,cap,countToday){if(countToday>cap)return;let p=store.get('pts',0)+n,t=store.get('tickets',0);
+  if(p>=PTS_NEED){p-=PTS_NEED;t++;store.set('tickets',t);store.set('ticketNew',true)}store.set('pts',p);ptsToast(n,PTS_WHY[k]);const m=document.querySelector('.ptsm');if(m)m.replaceWith(ptsMeter())}
+function ptsToast(n,why){const el=h('div',{class:'ptoast'},`+${n} ⭐ points${why?' for '+why:''}!`);document.body.append(el);setTimeout(()=>el.classList.add('on'),30);setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)},3200)}
+function ptsMeter(){const p=store.get('pts',0),t=store.get('tickets',0);
+  return h('div',{class:'ptsm',onclick:()=>movieNight()},t?h('b',{},`🎟️ You have ${t} Movie Night ticket${t>1?'s':''}!`):h('span',{},`🎟️ ${p} of ${PTS_NEED} points to Movie Night`),h('div',{class:'pbar'},h('i',{style:`width:${Math.min(100,p/PTS_NEED*100)}%`})))}
+setInterval(()=>{if(!store.get('ticketNew',false)||inGame||document.querySelector('.ov,.exlayer,.splash')||Date.now()<quietUntil)return;store.set('ticketNew',false);beep('win');try{confetti()}catch(e){}
+  say(`Hooray, ${N()}! You earned a Movie Night ticket!`);
+  modal(`🎟️ You earned a Movie Night ticket, ${N()}!`,'All those points paid off. Would you like to pick a movie now, or save it for later?',[['🍿 Pick a movie',()=>{stopSay();movieNight()},'good'],['Save it for later',()=>stopSay(),'alt']],h('div',{style:'font-size:4rem'},'🎬'))},3000);
+const AV='https://archive.org/download/';
+const FREE_MOVIES=[
+ {t:'Johnny Belinda',y:1948,ic:'🤟',yt:'https://www.youtube.com/watch?v=A-xSGuybn6M',d:'Jane Wyman won the Oscar as Belinda, a young deaf woman on a Nova Scotia farm, and the kind doctor who teaches her to sign. Plays on YouTube.'},
+ {t:'His Girl Friday',y:1940,ic:'📰',u:AV+'his_girl_friday/his_girl_friday.mp4',d:'Cary Grant and Rosalind Russell talk a mile a minute in this newspaper comedy.'},
+ {t:'My Man Godfrey',y:1936,ic:'🎩',u:AV+'MyManGodfrey1936/MyManGodfrey1936.mp4',d:'Carole Lombard hires William Powell as the butler for her daffy rich family.'},
+ {t:'Penny Serenade',y:1941,ic:'🎵',u:AV+'penny_serenade/penny_serenade.mp4',d:'Irene Dunne and Cary Grant remember their marriage through the songs on their old records.'},
+ {t:'Meet John Doe',y:1941,ic:'📻',u:AV+'meet_john_doe/meet_john_doe.mp4',d:'Gary Cooper and Barbara Stanwyck in Frank Capra’s story of an ordinary man who becomes a hero.'},
+ {t:'Life with Father',y:1947,ic:'👨‍👩‍👦',u:AV+'LifeWithFather/LifeWithFather.mp4',d:'William Powell and Irene Dunne raise four red-headed boys in 1880s New York. In color.'},
+ {t:'Angel and the Badman',y:1947,ic:'🤠',u:AV+'angel_and_the_badman/angel_and_the_badman.mp4',d:'John Wayne is a wounded gunfighter nursed back to health by a gentle Quaker family.'},
+ {t:'Royal Wedding',y:1951,ic:'💃',u:AV+'royal-wedding-1951/Royal%20Wedding%20(1951).ia.mp4',d:'Fred Astaire and Jane Powell sing and dance in London. Fred dances on the ceiling!'},
+ {t:'Road to Bali',y:1952,ic:'🌴',u:AV+'RoadToBali1952_201612/Road_To_Bali_(1952).mp4',d:'Bob Hope, Bing Crosby and Dorothy Lamour on another silly “Road” adventure.'},
+ {t:'McLintock!',y:1963,ic:'🐂',u:AV+'mclintok_widescreen/McLintock.mp4',d:'John Wayne and Maureen O’Hara fight, feud and fall in love again out West.'},
+ {t:'Charade',y:1963,ic:'🕵️',u:AV+'charade-1963-cary-grant-audrey-hepburn-comedy-mystery-romance-thriller-full-movie/Charade_READY.mp4',d:'Audrey Hepburn and Cary Grant in a twisty Paris mystery with lots of laughs.'}];
+function movieNight(){const body=frame('Movie Night');const p=store.get('pts',0),t=store.get('tickets',0),open=store.get('movieOpen',null);
+  const ok=m=>S.movieFree||(open&&open.t===m.t&&open.d===today())||t>0;
+  body.append(h('div',{class:'msg'},t?`🎟️ You have ${t} ticket${t>1?'s':''}, ${N()}! Pick a movie.`:`You have ${p} of ${PTS_NEED} points. Earn ${PTS_NEED-p} more for a Movie Night ticket!`),
+    h('div',{class:'pbar big'},h('i',{style:`width:${t?100:Math.min(100,p/PTS_NEED*100)}%`})),
+    h('div',{class:'msg small'},'Earn points: win a game +10 · sing a song +10 · shower +20 · call family +20 · solve a mystery +10 · stretch +5 · story +5'),
+    h('div',{class:'games'},FREE_MOVIES.map(m=>h('button',{class:'gtile'+(ok(m)?'':' locked'),onclick:()=>{beep('tap');pickMovie(m)}},h('div',{class:'ic'},m.ic),h('div',{},h('b',{},`${m.t} (${m.y})`),h('span',{},m.d))))),
+    h('div',{class:'row',style:'margin:24px 0'},h('button',{class:'btn alt',onclick:home},'⌂ Home')));
+  function pickMovie(m){const again=open&&open.t===m.t&&open.d===today();
+    if(!S.movieFree&&!again&&!t){modal(`Almost there, ${N()}!`,`You need ${PTS_NEED-p} more points for a Movie Night ticket. Play a game, sing a song, or call someone in the family!`,[['OK',null,'good']],h('div',{style:'font-size:3.5rem'},'🎟️'));return}
+    const go=()=>{if(!S.movieFree&&!again){store.set('tickets',t-1)}store.set('movieOpen',{t:m.t,d:today()});statAdd('shows');playMovie(m)};
+    if(again||S.movieFree)return go();
+    modal(`Watch ${m.t}?`,`This uses 1 Movie Night ticket. You can stop and come back to it any time today for free.`,[['🍿 Yes, start the movie',go,'good'],['Not now',null,'alt']],h('div',{style:'font-size:3.5rem'},m.ic))}}
+function playMovie(m){if(m.yt){openLink(m.yt);modal(`Enjoy ${m.t}, ${N()}! 🍿`,'It opens in YouTube. When it’s over, come back here.',[['OK',null,'good']],h('div',{style:'font-size:3.5rem'},'🎬'));return}
+  stopSay();lauForce=false;lauHide();const layer=h('div',{class:'exlayer movie'});const key='mpos_'+m.t;
+  const v=h('video',{controls:'',playsinline:'','webkit-playsinline':'',preload:'auto',src:m.u});
+  const close=()=>{try{store.set(key,v.currentTime>30&&v.currentTime<v.duration-120?v.currentTime:0);v.pause();v.removeAttribute('src');v.load()}catch(e){}layer.remove();home()};
+  layer.append(h('div',{class:'mv-top'},h('b',{},`🎬 ${m.t} (${m.y})`),h('button',{class:'btn good',onclick:close},'✔ Done watching')),v,
+    h('div',{class:'msg small',style:'color:#ddd'},'Tap the movie for play, pause and full screen. Public domain film from archive.org.'));
+  document.body.append(layer);const pos=store.get(key,0);
+  v.addEventListener('loadedmetadata',()=>{if(pos)v.currentTime=pos},{once:true});
+  const save=setInterval(()=>{if(!layer.isConnected){clearInterval(save);return}if(v.currentTime>30)store.set(key,v.currentTime)},10000);
+  const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{})}
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
