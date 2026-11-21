@@ -16,4 +16,4 @@ U.S. military bands (U.S. government works, public domain; via archive.org):
   first-noel.mp3     The First Nowell - Lyric Quartet, 1914 (LOC National Jukebox)
   blessed.mp3        Blessed Assurance - Sookietex, released to public domain (archive.org)
   angels.mp3         Angels We Have Heard on High - Jeremy Westcott, CC BY 2.5 (archive.org)
-Old 78 recordings cleaned up (strong declick + hiss removal) with ffmpeg.
+Old 78 recordings lightly cleaned up (declick, hiss reduction) with ffmpeg.
