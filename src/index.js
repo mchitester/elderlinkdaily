@@ -1,6 +1,6 @@
 // Elder Link Daily worker: static files, Range support for audio, and Laurie's voice (/tts).
 const VOICE_ID = 'Rfr8Cn9daYiYJv4iZLHl';
-const VER = 'v2';
+const VER = 'v3';
 const DAILY_CHAR_CAP = 4000;
 
 async function sha(s) {
@@ -28,7 +28,7 @@ async function tts(request, env, url) {
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.85, style: 0, use_speaker_boost: true } })
+    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.4, similarity_boost: 1.0, style: 0.3, use_speaker_boost: true } })
   });
   if (!r.ok) return new Response('tts error ' + r.status, { status: 502 });
   const buf = await r.arrayBuffer();
