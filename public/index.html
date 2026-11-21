@@ -351,7 +351,7 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .gear{position:absolute;top:14px;right:14px;z-index:2;width:52px;height:52px;border-radius:50%;border:1.5px solid var(--goldl);background:var(--card);font-size:1.5rem;color:var(--accent);cursor:pointer}
 .playbox{text-align:center;margin:14px 0 6px}
 .playbtn{font-size:1.7rem!important;min-width:320px;min-height:100px;border-radius:24px!important}
-.homebtns{margin-top:14px}
+.homebtns{margin-top:14px}@media (min-width:600px){.homegrid .homebtns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:760px;margin-left:auto;margin-right:auto}.homegrid .homebtns .btn{width:100%;padding:8px 6px}}
 .homebtns .btn{font-size:1.3rem;min-height:68px}
 .homegrid .news .btn{min-height:48px!important;font-size:1rem!important;padding:8px 14px}
 .homegrid .news .row,.homegrid .news>div:last-child{gap:8px}
@@ -360,10 +360,12 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 @media (orientation:landscape) and (min-width:900px){
  .homegrid{max-width:1180px!important;display:grid;grid-template-columns:1.05fr 1fr;column-gap:22px;align-items:start}
  .homeR{display:contents}
- .homegrid .hello{margin:0;grid-column:1;grid-row:1}
- .homegrid .news{margin:0;grid-column:2;grid-row:1 / span 3}
- .homegrid .playbox{grid-column:1;grid-row:2;margin:10px 0 0}
- .homegrid .homebtns{grid-column:1;grid-row:3;margin-top:10px}
+ .homegrid .hello{margin:0;grid-column:1;grid-row:1 / span 3}
+ .homegrid .news{margin:0;grid-column:2;grid-row:1}
+ .homegrid .playbox{grid-column:2;grid-row:2;margin:12px 0 0}
+ .homegrid .homebtns{grid-column:2;grid-row:3;margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+ .homegrid .homebtns .btn{font-size:1.1rem;min-height:64px;padding:8px 6px;width:100%}
+ .homegrid .news .row,.homegrid .news>div:last-child{flex-wrap:wrap}
  .playbtn{min-height:84px}
 }
 .sg-all .sg-line{opacity:1;color:var(--ink)}.sg-prog{height:10px;border-radius:6px;background:rgba(0,0,0,.08);margin:6px auto 16px;max-width:520px;overflow:hidden}.sg-prog i{display:block;height:100%;width:0;background:var(--gold,#b8892f);transition:width .4s linear}.sg-credit{opacity:.75}
@@ -471,7 +473,7 @@ function newsMore(n){const layer=h('div',{class:'exlayer'});document.body.append
   layer.scrollTop=0;beep('tap')}
 function newsBox(){const box=h('div',{class:'news'});let i=store.get('newsIdx',0)%NEWS.items.length;
   const draw=()=>{const n=NEWS.items[i];box.innerHTML='';box.append(h('div',{class:'nh'},`📰 News break · ${NEWS.week}`),h('div',{class:'nt'},`${n.i} ${n.t}`),h('p',{class:'nb'},n.b),
-    h('div',{class:'row',style:'justify-content:flex-start'},h('button',{class:'btn alt',style:'min-height:52px;font-size:.95rem',onclick:()=>{i=(i+1)%NEWS.items.length;store.set('newsIdx',i);beep('tap');draw()}},'Next story ›'),n.m?h('button',{class:'btn',style:'min-height:52px;font-size:.95rem',onclick:()=>newsMore(n)},'📖 Read more of this story'):null,speakBtn(()=>n.t+'. '+n.b)))};
+    h('div',{class:'row',style:'justify-content:flex-start'},h('button',{class:'btn alt',style:'min-height:52px;font-size:.95rem',onclick:()=>{i=(i+1)%NEWS.items.length;store.set('newsIdx',i);beep('tap');draw();fitHome()}},'Next story ›'),n.m?h('button',{class:'btn',style:'min-height:52px;font-size:.95rem',onclick:()=>newsMore(n)},'📖 Read more of this story'):null,speakBtn(()=>n.t+'. '+n.b)))};
   store.set('newsIdx',(i+1)%NEWS.items.length);draw();return box}
 
 /* ---------- home / settings ---------- */
@@ -489,7 +491,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='6.1',APP_DATE='November 21, 2026';
+const APP_VERSION='6.2',APP_DATE='November 21, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -499,8 +501,13 @@ function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEa
     h('div',{class:'homeR'},newsBox(),
     S.autoplay?(()=>{sessionStarted=false;featured=pickFeatured();return h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))})():null,
     S.autoplay?null:h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
-    h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:movieNight},'🎟️ Movie Night')))));window.scrollTo(0,0);fitHome()}
-function fitHome(){const el=document.querySelector('.homegrid');if(!el)return;el.style.zoom='';requestAnimationFrame(()=>{const H=document.documentElement.scrollHeight,V=window.innerHeight;if(H>V+4){el.style.zoom=Math.max(.72,(V-8)/H).toFixed(3)}})}
+    h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',style:'font-size:1.3rem;min-height:72px',onclick:movieNight},'🎟️ Movie Night')))));window.scrollTo(0,0);fitHomeSoon()}
+function fitHome(){const el=document.querySelector('.homegrid');if(!el)return;el.style.transform='';el.style.marginBottom='';el.style.height='';el.style.zoom='';requestAnimationFrame(()=>{const V=window.innerHeight;
+  const H=document.documentElement.scrollHeight;if(H<=V+2)return;const top=el.getBoundingClientRect().top+scrollY,eh=el.offsetHeight;const avail=V-top-(H-top-eh)-6;
+  const z=Math.max(.5,Math.min(1,avail/eh));el.style.transformOrigin='top center';el.style.transform=`scale(${z.toFixed(3)})`;el.style.height=`${(eh*z).toFixed(1)}px`;
+  const set=k=>{el.style.transform=`scale(${k.toFixed(3)})`;el.style.height=`${(eh*k).toFixed(1)}px`};
+  let lo=z,hi=1;for(let i=0;i<7;i++){const m=(lo+hi)/2;set(m);if(document.documentElement.scrollHeight<=V&&el.getBoundingClientRect().bottom<=V-6)lo=m;else hi=m}set(lo);window.scrollTo(0,0)})}
+function fitHomeSoon(){[60,400,1200,2500].forEach(t=>setTimeout(fitHome,t));try{document.fonts.ready.then(()=>fitHome())}catch(e){}}
 addEventListener('resize',()=>setTimeout(fitHome,150));addEventListener('orientationchange',()=>setTimeout(fitHome,300));
 function welcome(){app.innerHTML='';const inp=h('input',{type:'text',placeholder:'Her first name',autocomplete:'off'});
   app.append(h('div',{class:'wrap'},h('div',{class:'hello'},h('div',{class:'brand'},'🌷 Elder Link Daily 🌷'),h('div',{class:'hi'},'Welcome!')),
@@ -1905,7 +1912,7 @@ const PTS={wins:[10,10],songs:[10,3],shower:[20,1],stretch:[5,4],water:[2,4],mys
 const PTS_NEED=500;
 const PTS_WHY={wins:'winning a game',songs:'singing a song',shower:'taking a shower',stretch:'stretching',water:'drinking water',myst:'solving a mystery',stories:'reading a story',qr:'a right answer',calls:'calling family'};
 function earnPts(k,n,cap,countToday){if(countToday>cap)return;let p=store.get('pts',0)+n,t=store.get('tickets',0);store.set('tickets0',t);
-  if(p>=PTS_NEED){p-=PTS_NEED;t++;store.set('tickets',t);store.set('ticketNew',true)}store.set('pts',p);ptsToast(n,PTS_WHY[k]);lauPop(t>store.get('tickets0',t)?'':`Now you have ${p} points! ⭐`);const m=document.querySelector('.ptsm');if(m)m.replaceWith(ptsMeter())}
+  if(p>=PTS_NEED){p-=PTS_NEED;t++;store.set('tickets',t);store.set('ticketNew',true)}store.set('pts',p);ptsToast(n,PTS_WHY[k]);lauPop(t>store.get('tickets0',t)?'':`Now you have ${p} points! ⭐`);const m=document.querySelector('.ptsm');if(m){m.replaceWith(ptsMeter());fitHome()}}
 function ptsToast(n,why){const el=h('div',{class:'ptoast'},`+${n} ⭐ points${why?' for '+why:''}!`);document.body.append(el);setTimeout(()=>el.classList.add('on'),30);setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)},3200)}
 function ptsMeter(){const p=store.get('pts',0),t=store.get('tickets',0);
   return h('div',{class:'ptsm',onclick:()=>movieNight()},t?h('b',{},`🎟️ You have ${t} Movie Night ticket${t>1?'s':''}!`):h('span',{},`🎟️ ${p} of ${PTS_NEED} points to Movie Night`),h('div',{class:'pbar'},h('i',{style:`width:${Math.min(100,p/PTS_NEED*100)}%`})))}
