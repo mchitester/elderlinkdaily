@@ -489,7 +489,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='5.9',APP_DATE='November 20, 2026';
+const APP_VERSION='6.0',APP_DATE='November 21, 2026';
 function home(){stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
@@ -1048,7 +1048,8 @@ function lauShow(){if(!(S.narrator==null?'Laurie':S.narrator))return;if(document
   const acts=['bounce','wiggle','sway','hop','spin'];lauEl.className='lau show a-'+pick(acts);
   lauEl.querySelector('.lau-prop').textContent=pick(LAU_PROPS);
   if(Math.random()<.6)setTimeout(()=>lauQuip(),300)}
-function lauQuip(tap){if(!lauEl)return;const b=lauEl.querySelector('.lau-bub');b.textContent=pick(LAU_QUIPS).replace('{N}',N());b.classList.add('on');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('on'),tap?2600:3200);if(tap){lauEl.classList.remove('a-spin');void lauEl.offsetWidth;lauEl.classList.add('a-spin')}}
+function ptsLine(){const p=store.get('pts',0),t=store.get('tickets',0);return t?pick([`You have a Movie Night ticket, {N}! 🎟️`,`Popcorn time! You’ve got a ticket! 🍿`]):pick([`You have ${p} points, {N}! ⭐`,`${PTS_NEED-p} more points to Movie Night! 🎟️`,`${p} points! Keep it up, {N}! ⭐`])}
+function lauQuip(tap){if(!lauEl)return;const b=lauEl.querySelector('.lau-bub');b.textContent=(Math.random()<.45?ptsLine():pick(LAU_QUIPS)).replace('{N}',N());b.classList.add('on');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('on'),tap?2600:3200);if(tap){lauEl.classList.remove('a-spin');void lauEl.offsetWidth;lauEl.classList.add('a-spin')}}
 function lauHide(){lauOn=false;if(lauEl)lauEl.classList.remove('show')}
 setInterval(()=>{try{if(window.speechSynthesis&&speechSynthesis.speaking)lauShow();else if(lauOn&&!lauForce)lauHide()}catch(e){}},400);
 function speakNow(t){if(!canSpeak)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/[⭐👪💡📰🪑❓💧]/gu,''));u.rate=.88;u.lang='en-US';setVoice(u);speechSynthesis.speak(u)}catch(e){}}
@@ -1903,8 +1904,8 @@ function singRec(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push
 const PTS={wins:[10,10],songs:[10,3],shower:[20,1],stretch:[5,4],water:[2,4],myst:[10,3],stories:[5,3],qr:[2,10]};
 const PTS_NEED=500;
 const PTS_WHY={wins:'winning a game',songs:'singing a song',shower:'taking a shower',stretch:'stretching',water:'drinking water',myst:'solving a mystery',stories:'reading a story',qr:'a right answer',calls:'calling family'};
-function earnPts(k,n,cap,countToday){if(countToday>cap)return;let p=store.get('pts',0)+n,t=store.get('tickets',0);
-  if(p>=PTS_NEED){p-=PTS_NEED;t++;store.set('tickets',t);store.set('ticketNew',true)}store.set('pts',p);ptsToast(n,PTS_WHY[k]);const m=document.querySelector('.ptsm');if(m)m.replaceWith(ptsMeter())}
+function earnPts(k,n,cap,countToday){if(countToday>cap)return;let p=store.get('pts',0)+n,t=store.get('tickets',0);store.set('tickets0',t);
+  if(p>=PTS_NEED){p-=PTS_NEED;t++;store.set('tickets',t);store.set('ticketNew',true)}store.set('pts',p);ptsToast(n,PTS_WHY[k]);lauPop(t>store.get('tickets0',t)?'':`Now you have ${p} points! ⭐`);const m=document.querySelector('.ptsm');if(m)m.replaceWith(ptsMeter())}
 function ptsToast(n,why){const el=h('div',{class:'ptoast'},`+${n} ⭐ points${why?' for '+why:''}!`);document.body.append(el);setTimeout(()=>el.classList.add('on'),30);setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)},3200)}
 function ptsMeter(){const p=store.get('pts',0),t=store.get('tickets',0);
   return h('div',{class:'ptsm',onclick:()=>movieNight()},t?h('b',{},`🎟️ You have ${t} Movie Night ticket${t>1?'s':''}!`):h('span',{},`🎟️ ${p} of ${PTS_NEED} points to Movie Night`),h('div',{class:'pbar'},h('i',{style:`width:${Math.min(100,p/PTS_NEED*100)}%`})))}
@@ -1946,6 +1947,12 @@ function playMovie(m){if(m.yt){openLink(m.yt);modal(`Enjoy ${m.t}, ${N()}! 🍿`
   v.addEventListener('loadedmetadata',()=>{if(pos)v.currentTime=pos},{once:true});
   const save=setInterval(()=>{if(!layer.isConnected){clearInterval(save);return}if(v.currentTime>30)store.set(key,v.currentTime)},10000);
   const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{})}
+
+function lauPop(text,speak){if(!text||!(S.narrator==null?'Laurie':S.narrator))return;try{lauShow();if(!lauEl)return;const b=lauEl.querySelector('.lau-bub');setTimeout(()=>{b.textContent=text.replace('{N}',N());b.classList.add('on');clearTimeout(b._t);b._t=setTimeout(()=>{b.classList.remove('on');if(!(window.speechSynthesis&&speechSynthesis.speaking)&&!lauForce)lauHide()},4500)},400);if(speak)say(text.replace('{N}',N()).replace(/[⭐🎟️🍿]/gu,''))}catch(e){}}
+setInterval(()=>{if(inGame||document.hidden||document.querySelector('.ov,.exlayer,.splash')||Date.now()<quietUntil)return;if(!document.querySelector('.homegrid'))return;
+  const last=store.get('lauPtsAt',0);if(Date.now()-last<12*60e3)return;store.set('lauPtsAt',Date.now());lauPop(ptsLine(),true)},60e3);
+/* one-time family reset of points */
+if(store.get('ptsReset','')!=='r1'){store.set('ptsReset','r1');store.set('pts',100);store.set('tickets',0);store.set('ticketNew',false)}
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
