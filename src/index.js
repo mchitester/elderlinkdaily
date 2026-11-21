@@ -18,7 +18,8 @@ async function tts(request, env, url) {
   const hit = env.VOICE && await env.VOICE.get(key, 'arrayBuffer');
   const headers = { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Voice': 'cache' };
   if (hit) return new Response(hit, { headers });
-  if (!env.ELEVEN_KEY) return new Response('no key', { status: 503 });
+  const apiKey = env.ELEVEN_KEY || await env.VOICE.get('cfg:eleven');
+  if (!apiKey) return new Response('no key', { status: 503 });
   // daily spending guard
   const day = 'chars:' + new Date().toISOString().slice(0, 10);
   const used = Number(await env.VOICE.get(day) || 0);
@@ -26,7 +27,7 @@ async function tts(request, env, url) {
   const model = text.length <= 160 ? 'eleven_multilingual_v2' : 'eleven_flash_v2_5';
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_64`, {
     method: 'POST',
-    headers: { 'xi-api-key': env.ELEVEN_KEY, 'Content-Type': 'application/json' },
+    headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.8 } })
   });
   if (!r.ok) return new Response('tts error ' + r.status, { status: 502 });
@@ -40,6 +41,12 @@ async function tts(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/voice-setup' && request.method === 'POST' && request.headers.get('X-Setup') === '682e3d19df601039ebd216f81d281695') {
+      const k = (await request.text()).trim();
+      if (!/^sk_[a-f0-9]{20,}$/.test(k)) return new Response('bad', { status: 400 });
+      await env.VOICE.put('cfg:eleven', k);
+      return new Response('saved');
+    }
     if (url.pathname === '/tts') {
       try { return await tts(request, env, url); } catch (e) { return new Response('error', { status: 500 }); }
     }
