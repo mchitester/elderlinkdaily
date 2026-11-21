@@ -41,12 +41,6 @@ async function tts(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/voice-setup' && request.method === 'POST' && request.headers.get('X-Setup') === '682e3d19df601039ebd216f81d281695') {
-      const k = (await request.text()).trim();
-      if (!/^sk_[a-f0-9]{20,}$/.test(k)) return new Response('bad', { status: 400 });
-      await env.VOICE.put('cfg:eleven', k);
-      return new Response('saved');
-    }
     if (url.pathname === '/tts') {
       try { return await tts(request, env, url); } catch (e) { return new Response('error', { status: 500 }); }
     }
