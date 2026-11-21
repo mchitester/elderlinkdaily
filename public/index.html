@@ -385,6 +385,11 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .tab{font:inherit;font-size:1.35rem;font-weight:700;min-height:88px;border-radius:20px;border:2px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .tab .tic{font-size:2rem;line-height:1}
 .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.byebtn{position:absolute;top:14px;left:14px;z-index:2;font:inherit;font-size:1.05rem;font-weight:700;padding:10px 16px;border-radius:999px;border:1.5px solid var(--goldl);background:var(--card);color:var(--accent);cursor:pointer}
+.exlayer.bye{background:var(--bg,#f7f2e8)!important;display:flex;align-items:center;justify-content:center;text-align:center;transition:background 2s}
+.bye-t{font-family:var(--serif,'Playfair Display',serif);font-size:3rem;color:var(--ink);margin-top:8px}.bye-s{font-size:1.5rem;margin-top:12px;color:var(--ink)}.bye-hint{font-size:1.1rem;margin-top:18px;opacity:.7;max-width:480px;margin-left:auto;margin-right:auto}
+@media (max-width:700px){.h3 .hello{padding-top:74px!important}}
+.exlayer.bye.dark{background:#000!important}.exlayer.bye.dark .bye-in{opacity:.12;transition:opacity 2s}
 </style>
 </head>
 <body>
@@ -506,7 +511,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='6.3',APP_DATE='November 21, 2026';
+const APP_VERSION='6.4',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -523,7 +528,7 @@ function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=fals
       S.autoplay?h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))
         :h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
       h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',onclick:movieNight},'🎟️ Movie Night')))}
-  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),ptsMeter(),
+  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),ptsMeter(),
       h('div',{class:'row',style:'margin-top:14px'},h('button',{class:'btn good bignext',onclick:()=>go('news')},'📰 See the news ›')))}
   app.append(h('div',{class:'wrap homegrid h3'},pane,
     h('div',{class:'tabbar'},TABS.map(([k,ic,t])=>h('button',{class:'tab'+(k===homeTab?' on':''),onclick:()=>go(k)},h('span',{class:'tic'},ic),t)))));
@@ -1986,6 +1991,17 @@ setInterval(()=>{if(inGame||document.hidden||document.querySelector('.ov,.exlaye
   const every=S.lauPtsMin==null?12:+S.lauPtsMin;if(!every)return;const last=store.get('lauPtsAt',0);if(Date.now()-last<every*60e3)return;store.set('lauPtsAt',Date.now());lauPop(ptsLine(),true)},60e3);
 /* one-time family reset of points */
 if(store.get('ptsReset','')!=='r1'){store.set('ptsReset','r1');store.set('pts',100);store.set('tickets',0);store.set('ticketNew',false)}
+
+function closeApp(){beep('tap');try{stopSay()}catch(e){}try{recStop()}catch(e){}try{if(tuneStop)tuneStop()}catch(e){}stopTimers();inGame=false;lauForce=false;
+  document.querySelectorAll('.ov,.exlayer').forEach(o=>o.remove());const L=h('div',{class:'exlayer bye'});
+  const msg=h('div',{class:'bye-in'},h('div',{style:'font-size:5rem'},'👋'),h('div',{class:'bye-t'},`Goodbye, ${N()}!`),h('div',{class:'bye-s'},'See you soon. You can put the iPad down now.'),
+    h('div',{class:'bye-hint'},'To leave the app, swipe up from the bottom of the screen or press the Home button.'),h('button',{class:'btn good',style:'margin-top:34px;font-size:1.4rem;min-height:76px',onclick:back},'☀️ Come back'));
+  L.append(msg);document.body.append(L);try{say(`Bye-bye, ${N()}! See you soon!`)}catch(e){}
+  const dim=setTimeout(()=>L.classList.add('dark'),12000);quietUntil=Date.now()+365*864e5;
+  L.addEventListener('click',e=>{if(L.classList.contains('dark')&&e.target===L||L.classList.contains('dark')&&!e.target.closest('button'))back()});
+  const t0=Date.now(),vis=()=>{if(document.visibilityState==='visible'&&Date.now()-t0>20*60e3)back()};document.addEventListener('visibilitychange',vis);
+  function back(){clearTimeout(dim);document.removeEventListener('visibilitychange',vis);quietUntil=Date.now()+60000;if(L.isConnected){L.remove();home('today')}}
+  try{window.close()}catch(e){}}
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
