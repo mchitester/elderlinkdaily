@@ -418,7 +418,7 @@ const WORDS=WL.w.split(' '), WORDSET=new Set(WORDS), SEEDS=WL.s.split(' ');
 const $=s=>document.querySelector(s);
 function h(tag,props,...kids){const e=document.createElement(tag);props=props||{};for(const k in props){const v=props[k];if(k==='class')e.className=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(k,v===true?'':v)}for(const c of kids.flat(3)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(c))}return e}
 const store={get(k,d){try{const v=localStorage.getItem('gr_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('gr_'+k,JSON.stringify(v))}catch(e){}}};
-let S=Object.assign({name:'Doris',others:['Sam','Ruby','Joe'],size:'L',help:true,sound:true,breaks:true,breakMin:4,speak:true,water:true,reportOn:false,autoplay:true,mealsOn:true,showerOn:true,o2On:true,o2Min:95,callsOn:true,callsPerDay:1,inspOn:true,inspMix:'both',storyOn:true,mystOn:true,lauVoice:true,lauPtsMin:12,tapMin:8,singOn:true,born:1934,movieOn:true,movieDay:5,movieTime:'19:00',callers:['Marty','Bill','Bob','David','Ricky','','','','','']},store.get('settings',{}));
+let S=Object.assign({name:'Mama C',others:['Sam','Ruby','Joe'],size:'L',help:true,sound:true,breaks:true,breakMin:4,speak:true,water:true,reportOn:false,autoplay:true,mealsOn:true,showerOn:true,o2On:true,o2Min:95,callsOn:true,callsPerDay:1,inspOn:true,inspMix:'both',storyOn:true,mystOn:true,lauVoice:true,lauPtsMin:12,tapMin:8,singOn:true,born:1934,movieOn:true,movieDay:5,movieTime:'19:00',callers:['Marty','Bill','Bob','David','Ricky','','','','','']},store.get('settings',{}));
 function applySize(){document.documentElement.style.setProperty('--fs',S.size==='XL'?'26px':'22px')}
 function saveS(){store.set('settings',S);applySize()}
 applySize();
@@ -527,7 +527,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='6.7',APP_DATE='November 21, 2026';
+const APP_VERSION='6.8',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -2243,6 +2243,7 @@ function onboard(){const L=h('div',{class:'splash onb'});document.body.append(L)
       h('button',{class:'sp-go',style:'margin-top:36px',onclick:()=>{L.classList.add('out');setTimeout(()=>{L.remove();home();splash()},600)}},'Let’s begin  ›'))}
   step1()}
 
+if(store.get('nameMamaC','')!=='1'){store.set('nameMamaC','1');if(/^doris$/i.test((S.name||'').trim())){S.name='Mama C';saveS()}}
 if(!store.get('settings',null)&&!store.get('setupDone',false)){onboard()}else{home();splash()}
 </script>
 </body>
