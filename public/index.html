@@ -406,6 +406,7 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .tapit{position:fixed;z-index:9000;font-size:5.5rem;padding:24px;background:none;border:0;cursor:pointer;animation:tapin .6s ease-out,bob 1.6s ease-in-out .6s infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
 .tapit.got{animation:tapgot .7s forwards}.tapit.bye{transition:opacity .6s;opacity:0}
 @keyframes tapin{from{transform:scale(0)}to{transform:scale(1)}}@keyframes bob{50%{transform:translateY(-12px)}}@keyframes tapgot{to{transform:scale(2.2) rotate(20deg);opacity:0}}
+.sp-hi{font-family:var(--serif,serif);font-size:2.6rem;color:#fff;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -527,7 +528,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='6.8',APP_DATE='November 21, 2026';
+const APP_VERSION='6.9',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -2149,15 +2150,16 @@ function splash(){const vi=store.get('spIdx',0);store.set('spIdx',vi+1);const V=
   const greet=h('div',{class:'sp-greet'},h('div',{class:'sp-hi'},`${g},`),h('div',{class:'sp-who'},`${N()}!`),h('div',{class:'sp-date'},`Today is ${d}`),
     h('button',{class:'sp-go',onclick:go},'Tap to begin  ›'));
   const nar=S.narrator==null?'Laurie':S.narrator;
-  const narr=nar?h('div',{class:'sp-nar'},h('div',{class:'sp-small'},'Your narrator today is'),spScene(2,V),h('div',{class:'sp-who2'},nar),h('div',{class:'sp-tag'},'She’ll read your stories, mysteries and verses')):null;
+  const narr=nar?h('div',{class:'sp-nar'},h('div',{class:'sp-hi'},`Hi, ${N()}!`),h('div',{class:'sp-small'},'Your narrator today is'),spScene(2,V),h('div',{class:'sp-who2'},nar),h('div',{class:'sp-tag'},'She’ll read your stories, mysteries and verses')):null;
   L.append(logo,narr,greet);document.body.append(L);
-  if(narr){setTimeout(()=>{if(!L.classList.contains('step2'))L.classList.add('stepN')},3600);setTimeout(()=>{L.classList.add('step2')},8200)}
+  let narSaid=false;const narSay=()=>{if(narSaid||!narr||!S.speak)return;narSaid=true;try{say(`Hi, ${N()}! It’s me, ${nar}! I’ll be your narrator today.`)}catch(e){}};
+  if(narr){setTimeout(()=>{if(!L.classList.contains('step2')){L.classList.add('stepN');narSay()}},3600);setTimeout(()=>{L.classList.add('step2')},8200)}
   else setTimeout(()=>L.classList.add('step2'),3600);
   const auto=setTimeout(go,20000);
   function go(){if(gone)return;gone=true;clearTimeout(auto);quietUntil=Date.now()+60000;document.querySelectorAll('.ov,.exlayer').forEach(x=>x.remove());try{home()}catch(e){}try{beep('good')}catch(e){}
     if(S.speak)try{say(`${g}, ${N()}! Today is ${d}.`)}catch(e){}
     L.classList.add('out');setTimeout(()=>L.remove(),700)}
-  L.addEventListener('click',e=>{if(L.classList.contains('step2'))go();else if(narr&&!L.classList.contains('stepN'))L.classList.add('stepN');else{L.classList.add('step2')}})}
+  L.addEventListener('click',e=>{if(L.classList.contains('step2'))go();else if(narr&&!L.classList.contains('stepN')){L.classList.add('stepN');narSay()}else{L.classList.add('step2')}})}
 
 
 /* ---------- age / era personalization ---------- */
