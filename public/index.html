@@ -528,7 +528,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='7.0',APP_DATE='November 21, 2026';
+const APP_VERSION='7.1',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -1973,7 +1973,7 @@ function singRec(s){const d=store.get('singDone',[]);if(!d.includes(s.t)){d.push
   lauForce=true;lauShow();try{lauEl.querySelector('.lau-prop').textContent='🎤'}catch(e){}
   function play(){cd.style.display='none';clearTimeout(tm);startB.style.display='none';const t0=a.currentTime;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{startB.style.display='block'});
     setTimeout(()=>{if(layer.isConnected&&!paused&&(a.paused||a.currentTime<=t0+.05)){if(a.readyState<2){try{a.load()}catch(e){}}startB.style.display='block';startB.scrollIntoView({behavior:'smooth',block:'center'})}},5000)}
-  a.src=MUSIC_BASE+R.f+'.mp3';setRate(rate);
+  a.src=MUSIC_BASE+R.f+'.mp3?v=2';setRate(rate);
   a.ontimeupdate=()=>{if(!layer.isConnected)return;const f=a.duration?a.currentTime/a.duration:0;prog.firstChild.style.width=(f*100)+'%';
     const max=words.scrollHeight-window.innerHeight*.45;const top=words.offsetTop-window.innerHeight*.3+Math.max(0,max)*f;layer.scrollTo({top:Math.max(0,top),behavior:'smooth'})};
   a.onended=()=>{if(!layer.isConnected)return;if(S.singAuto===false)return;let n=6;cd.style.display='block';
