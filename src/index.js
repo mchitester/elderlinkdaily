@@ -1,6 +1,6 @@
 // Elder Link Daily worker: static files, Range support for audio, and Laurie's voice (/tts).
 const VOICE_ID = 'Rfr8Cn9daYiYJv4iZLHl';
-const VER = 'v1';
+const VER = 'v2';
 const DAILY_CHAR_CAP = 4000;
 
 async function sha(s) {
@@ -24,11 +24,11 @@ async function tts(request, env, url) {
   const day = 'chars:' + new Date().toISOString().slice(0, 10);
   const used = Number(await env.VOICE.get(day) || 0);
   if (used + text.length > DAILY_CHAR_CAP && url.searchParams.get('k') !== env.WARM_KEY) return new Response('daily cap', { status: 429 });
-  const model = text.length <= 160 ? 'eleven_multilingual_v2' : 'eleven_flash_v2_5';
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_64`, {
+  const model = 'eleven_multilingual_v2';
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.8 } })
+    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.55, similarity_boost: 0.85, style: 0, use_speaker_boost: true } })
   });
   if (!r.ok) return new Response('tts error ' + r.status, { status: 502 });
   const buf = await r.arrayBuffer();
