@@ -38,9 +38,53 @@ async function tts(request, env, url) {
   return new Response(buf, { headers });
 }
 
+const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function saveReport(request, env) {
+  const ref = request.headers.get('Referer') || request.headers.get('Origin') || '';
+  if (!/^https:\/\/(www\.)?elderlinkdaily\.com/.test(ref)) return new Response('forbidden', { status: 403 });
+  const txt = await request.text();
+  if (txt.length > 20000) return new Response('too big', { status: 413 });
+  let d; try { d = JSON.parse(txt) } catch (e) { return new Response('bad', { status: 400 }) }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d.day || '')) return new Response('bad day', { status: 400 });
+  await env.VOICE.put('rep:' + d.day, JSON.stringify(d), { expirationTtl: 180 * 86400 });
+  return new Response('ok');
+}
+
+async function familyPage(env, url) {
+  if (await sha(url.searchParams.get('k') || '') !== FAMILY_HASH) return new Response('Not found', { status: 404 });
+  const list = await env.VOICE.list({ prefix: 'rep:' });
+  const days = list.keys.map(k => k.name).sort().reverse().slice(0, 30);
+  const rows = (await Promise.all(days.map(k => env.VOICE.get(k, 'json')))).filter(Boolean);
+  const n = v => v || 0;
+  const card = r => {
+    const d = new Date(r.day + 'T12:00:00');
+    const items = [
+      ['🎮 Minutes in the app', Math.round(n(r.play) / 60)], ['🃏 Games played', n(r.games)], ['🏆 Games won', n(r.wins)],
+      ['❓ Questions right', `${n(r.qr)} of ${n(r.qa)}`], ['💬 Question of the day', n(r.qotd)], ['📰 News questions right', n(r.newsq)],
+      ['🧠 Memory minute', n(r.memory)], ['🦃 Tap the picture', n(r.tapit)], ['🎶 Songs sung', n(r.songs)], ['📖 Stories', n(r.stories)],
+      ['🕵️ Mysteries', n(r.myst)], ['📺 Shows / movies', n(r.shows)], ['🤸 Stretches', n(r.stretch)], ['💧 Water sips', n(r.water)],
+      ['🚿 Showered', r.shower ? 'Yes ✔' : '—'], ['📞 Called', (r.calls || []).join(', ') || '—'],
+      ['🫁 Oxygen', (r.o2 || []).map(o => `${o.v}% at ${o.t}`).join(', ') || '—'], ['⭐ Points now', r.pts ?? '—'], ['🎟️ Tickets', r.tickets ?? '—']];
+    return `<section><h2>${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+      <p class="u">Last update ${r.updated ? new Date(r.updated).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) : ''}</p>
+      <table>${items.map(([a, b]) => `<tr><td>${a}</td><td>${esc(b)}</td></tr>`).join('')}</table></section>`;
+  };
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Mama C's Activity</title><style>body{font-family:-apple-system,system-ui,sans-serif;background:#f7f2e8;color:#1b2a4a;margin:0;padding:18px;max-width:640px;margin:auto}
+h1{font-family:Georgia,serif;font-size:1.7rem;margin:8px 0}section{background:#fff;border-radius:16px;padding:14px 16px;margin:14px 0;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+h2{font-size:1.15rem;margin:0}.u{color:#888;font-size:.85rem;margin:2px 0 8px}table{width:100%;border-collapse:collapse}td{padding:6px 2px;border-top:1px solid #eee;font-size:1rem}td:last-child{text-align:right;font-weight:600}</style></head>
+<body><h1>📊 ${esc(rows[0] && rows[0].name || 'Mama C')}'s activity</h1><p class="u">From her iPad on elderlinkdaily.com. Updates every couple of minutes while she's using it.</p>
+${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, open ⚙︎ Settings → Activity report and tap “Yes, this is hers.”</section>'}</body></html>`;
+  return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/report' && request.method === 'POST') return saveReport(request, env);
+    if (url.pathname === '/family') return familyPage(env, url);
     if (url.pathname === '/tts') {
       try { return await tts(request, env, url); } catch (e) { return new Response('error', { status: 500 }); }
     }

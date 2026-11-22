@@ -2,7 +2,7 @@
   "name": "super-violet-6c21",
   "compatibility_date": "2026-11-01",
   "main": "src/index.js",
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/music/*", "/tts"] },
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/music/*", "/tts", "/report", "/family"] },
   "kv_namespaces": [{ "binding": "VOICE", "id": "f03ff833d2614ac188b7a0fb5d194a24" }],
   "keep_vars": true
 }
