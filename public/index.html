@@ -409,6 +409,11 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .sp-hi{font-family:var(--serif,serif);font-size:2.6rem;color:#fff;margin-bottom:6px}
 .sp-ver{margin-top:22px;font-size:.85rem;opacity:.6;letter-spacing:.04em}
 .h3 .homebtns{display:flex!important;justify-content:center}.h3 .homebtns .btn{width:auto!important;min-width:260px}
+.exlayer.vidx{background:rgba(20,28,48,.94)!important;display:flex;align-items:center;justify-content:center;padding:16px}
+.vid-in{width:100%;max-width:760px;text-align:center}.vid-t{color:#fff;font-family:var(--serif,serif);font-size:2rem;margin-bottom:12px}
+.vid-box{position:relative;border-radius:20px;overflow:hidden;background:#000;box-shadow:0 0 0 4px var(--gold)}.vid-box video{width:100%;max-height:70vh;display:block;background:#000}
+.vid-start{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:1.6rem!important;min-height:84px;padding:14px 30px!important}
+.btn.pulse{animation:lauBounce .5s ease-in-out infinite alternate}
 </style>
 </head>
 <body>
@@ -474,7 +479,8 @@ function moodFig(mood){const nar=(S.narrator==null?'Laurie':S.narrator)||'';
   return box}
 function modal(title,text,buttons,extra){
   if(S.autoplay&&inGame&&extra===undefined){buttons=(buttons||[]).filter(b=>b[1]!==home);if(!buttons.some(b=>b[1]===nextGame)){buttons=buttons.map(b=>[b[0]==='Play again'?'Play this again':b[0],b[1],'alt']);buttons.unshift(['Next game ›',nextGame,'good'])}}let mood=nextMood;nextMood=null;if(!mood&&/(wins|won this one|wins this time|wins by)/i.test(title))mood='lose';const ov=h('div',{class:'ov'});const box=h('div',{class:'mbox'},mood?moodFig(mood):null,h('div',{class:'big'},title),text?h('p',{},text):null,extra||null,h('div',{class:'row'},(buttons||[]).map(([label,fn,cls])=>h('button',{class:'btn '+(cls||''),onclick:()=>{ov.remove();fn&&fn()}},label))),extra?null:newsBox());ov.append(box);document.body.append(ov);setTimeout(()=>{try{box.scrollTop=0}catch(e){}},30);return ov}
-function winModal(text,again,buttons){nextMood='win';addWin();statAdd('wins');beep('win');confetti();modal(praise(),text,buttons||[['Play again',again,'good'],['Home',home,'alt']])}
+function winModal(text,again,buttons){nextMood='win';addWin();statAdd('wins');beep('win');confetti();const show=()=>modal(praise(),text,buttons||[['Play again',again,'good'],['Home',home,'alt']]);
+  const sk='vid_surprise_'+today();if(VIDS.length&&!store.get(sk,false)&&Math.random()<.35&&vidPick('surprise')){store.set(sk,true);setTimeout(()=>vidPlay(vidPick('surprise'),show),1200);return}show()}
 const app=$('#app');
 let inGame=false;
 function frame(title,opt){opt=opt||{};stopTimers();inGame=!['Settings','Chair Exercises','Choose her questions','Family questions','Activity report','Call reminders','Rate her games','Her favorite sayings','My Shows','Her shows','Reading voice','Sing-along'].includes(title);stopSay();if(inGame)statAdd('games');document.querySelectorAll('.ov').forEach(o=>o.remove());app.innerHTML='';
@@ -531,7 +537,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='8.1',APP_DATE='November 23, 2026';
+const APP_VERSION='8.2',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -2001,7 +2007,7 @@ function earnPts(k,n,cap,countToday){if(countToday>cap)return;let p=store.get('p
 function ptsToast(n,why){const el=h('div',{class:'ptoast'},`+${n} ⭐ points${why?' for '+why:''}!`);document.body.append(el);setTimeout(()=>el.classList.add('on'),30);setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)},3200)}
 function ptsMeter(){const p=store.get('pts',0),t=store.get('tickets',0);
   return h('div',{class:'ptsm',onclick:()=>movieNight()},t?h('b',{},`🎟️ You have ${t} Movie Night ticket${t>1?'s':''}!`):h('span',{},`🎟️ ${p} of ${PTS_NEED} points to Movie Night`),h('div',{class:'pbar'},h('i',{style:`width:${Math.min(100,p/PTS_NEED*100)}%`})))}
-setInterval(()=>{if(!store.get('ticketNew',false)||inGame||document.querySelector('.ov,.exlayer,.splash')||Date.now()<quietUntil)return;store.set('ticketNew',false);beep('win');try{confetti()}catch(e){}
+setInterval(()=>{if(!store.get('ticketNew',false)||inGame||document.querySelector('.ov,.exlayer,.splash')||Date.now()<quietUntil)return;store.set('ticketNew',false);if(vidPick('ticket')){vidPlay(vidPick('ticket'),()=>movieNight());return}beep('win');try{confetti()}catch(e){}
   say(`Hooray, ${N()}! You earned a Movie Night ticket!`);
   modal(`🎟️ You earned a Movie Night ticket, ${N()}!`,'All those points paid off. Would you like to pick a movie now, or save it for later?',[['🍿 Pick a movie',()=>{stopSay();movieNight()},'good'],['Save it for later',()=>stopSay(),'alt']],h('div',{style:'font-size:4rem'},'🎬'))},3000);
 const AV='https://archive.org/download/';
@@ -2125,6 +2131,25 @@ setInterval(()=>{if(S.tapMin===0||inGame||document.hidden||document.querySelecto
   const [ic,name]=pick(TAPIT[new Date().getMonth()+1]||TAPIT[11]);const b=h('button',{class:'tapit',style:`left:${10+Math.random()*70}%;top:${15+Math.random()*55}%`},ic);
   b.onclick=()=>{b.classList.add('got');beep('win');statAdd('tapit');lauPop(pick([`You got the ${name}!`,'Quick fingers!','Nice tap! ⭐']));setTimeout(()=>b.remove(),700)};
   document.body.append(b);lauPop(`Can you tap the ${name}, {N}?`,true);setTimeout(()=>{if(b.isConnected){b.classList.add('bye');setTimeout(()=>b.remove(),600)}},25000)},20000);
+
+/* ---------- Laurie's real video messages ---------- */
+let VIDS=[];(function loadVids(){const base=LV_SITE?'':'https://elderlinkdaily.com';fetch(base+'/videos/manifest.json?'+Math.floor(Date.now()/36e5)).then(r=>r.json()).then(d=>{VIDS=(d.videos||[]).map(v=>Object.assign({},v,{src:(v.file.startsWith('http')?'':base)+v.file}))}).catch(()=>{})})();
+function vidPick(kind){const seen=store.get('vidSeen',{});const md=today().slice(5);
+  let c=VIDS.filter(v=>v.when===kind&&(!v.date||v.date===md));if(!c.length)return null;
+  const unseen=c.filter(v=>!seen[v.id]);if(!unseen.length){c.forEach(v=>delete seen[v.id]);store.set('vidSeen',seen);return c[0]}return unseen[0]}
+function vidPlay(v,after){if(!v){after&&after();return}const seen=store.get('vidSeen',{});seen[v.id]=today();store.set('vidSeen',seen);stopSay();lauHide();
+  const L=h('div',{class:'exlayer vidx'});const vid=h('video',{playsinline:'','webkit-playsinline':'',preload:'auto',src:v.src,controls:''});
+  const close=()=>{try{vid.pause()}catch(e){}L.remove();after&&after()};
+  const start=h('button',{class:'btn good vid-start',onclick:()=>{start.remove();vid.play().catch(()=>{})}},'▶ Play Laurie’s message');
+  vid.addEventListener('ended',()=>{done.classList.add('pulse')});const done=h('button',{class:'btn good',style:'font-size:1.4rem;min-height:72px;padding:12px 40px',onclick:close},'✔ Done');
+  L.append(h('div',{class:'vid-in'},h('div',{class:'vid-t'},`💌 ${v.title||'A message from Laurie!'}`),h('div',{class:'vid-box'},vid,start),h('div',{class:'row',style:'margin-top:14px'},done)));
+  document.body.append(L);beep('good')}
+function vidMaybe(kind,after){const v=vidPick(kind);if(!v){after&&after();return false}
+  const key='vid_'+kind+'_'+(kind==='date'?today():today());if(kind!=='ticket'&&store.get(key,false)){after&&after();return false}store.set(key,true);vidPlay(v,after);return true}
+setInterval(()=>{if(!VIDS.length||inGame||document.hidden||document.querySelector('.ov,.exlayer,.splash')||Date.now()<quietUntil-50000)return;if(!document.querySelector('.h3'))return;
+  if(vidMaybe('date',()=>home(homeTab)))return;
+  if(new Date().getHours()<12&&vidMaybe('morning',()=>home(homeTab)))return;
+  if(new Date().getHours()>=12&&vidMaybe('afternoon',()=>home(homeTab)))return},4000);
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
