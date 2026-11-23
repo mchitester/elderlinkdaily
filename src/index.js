@@ -10,13 +10,13 @@ async function sha(s) {
 
 async function tts(request, env, url) {
   const ref = request.headers.get('Referer') || request.headers.get('Origin') || '';
-  const okRef = /^https:\/\/(www\.)?elderlinkdaily\.com\//.test(ref) || url.searchParams.get('k') === env.WARM_KEY && env.WARM_KEY;
+  const okRef = /^https:\/\/((www\.)?elderlinkdaily\.com|[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev|[a-z0-9.-]*claudeusercontent\.com|claude\.ai)(\/|$)/.test(ref) || url.searchParams.get('k') === env.WARM_KEY && env.WARM_KEY;
   if (!okRef) return new Response('forbidden', { status: 403 });
   let text = (url.searchParams.get('t') || '').replace(/\s+/g, ' ').trim();
   if (!text || text.length > 900) return new Response('bad text', { status: 400 });
   const key = VER + ':' + await sha(text);
   const hit = env.VOICE && await env.VOICE.get(key, 'arrayBuffer');
-  const headers = { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Voice': 'cache' };
+  const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Voice': 'cache' };
   if (hit) return new Response(hit, { headers });
   const apiKey = env.ELEVEN_KEY || await env.VOICE.get('cfg:eleven');
   if (!apiKey) return new Response('no key', { status: 503 });
@@ -66,7 +66,7 @@ async function familyPage(env, url) {
       ['🧠 Memory minute', n(r.memory)], ['🦃 Tap the picture', n(r.tapit)], ['🎶 Songs sung', n(r.songs)], ['📖 Stories', n(r.stories)],
       ['🕵️ Mysteries', n(r.myst)], ['📺 Shows / movies', n(r.shows)], ['🤸 Stretches', n(r.stretch)], ['💧 Water sips', n(r.water)],
       ['🚿 Showered', r.shower ? 'Yes ✔' : '—'], ['📞 Called', (r.calls || []).join(', ') || '—'],
-      ['🫁 Oxygen', (r.o2 || []).map(o => `${o.v}% at ${o.t}`).join(', ') || '—'], ['⭐ Points now', r.pts ?? '—'], ['🎟️ Tickets', r.tickets ?? '—']];
+      ['🫁 Oxygen', (r.o2 || []).map(o => `${o.v}% at ${o.t}`).join(', ') || '—'], ['⭐ Points now', r.pts ?? '—'], ['🎟️ Tickets', r.tickets ?? '—'], ['🔊 Voice used last', r.voice || '—'], ['📱 App version', r.ver || '—']];
     return `<section><h2>${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
       <p class="u">Last update ${r.updated ? new Date(r.updated).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) : ''}</p>
       <table>${items.map(([a, b]) => `<tr><td>${a}</td><td>${esc(b)}</td></tr>`).join('')}</table></section>`;
