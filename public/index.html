@@ -383,7 +383,7 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .h3 .ptsm{font-size:1.25rem;margin-top:12px}
 .h3>.pane,.h3>.hello{margin-top:auto!important;margin-bottom:auto!important;width:100%;box-sizing:border-box}
 @media (max-width:600px){.tab{font-size:.95rem!important;min-height:76px!important}.tab .tic{font-size:1.6rem!important}.tabbar{gap:6px!important}}
-.tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:4px}
+.tabbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:620px;margin-left:auto;margin-right:auto;width:100%;gap:12px;margin-top:4px}
 .tab{font:inherit;font-size:1.35rem;font-weight:700;min-height:88px;border-radius:20px;border:2px solid var(--line);background:var(--card);color:var(--accent);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .tab .tic{font-size:2rem;line-height:1}
 .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -529,14 +529,14 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='7.6',APP_DATE='November 21, 2026';
+const APP_VERSION='7.7',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const wins=store.get('wins',{})[today()]||0;
-  const TABS=[['today','☀️','Today'],['ask','💬','Question'],['news','📰','News'],['play','🎲','Play']];
+  const TABS=[['today','☀️','Today'],['play','🎲','Play']];
   const go=t=>{beep('tap');home(t)};
-  const nextIdx=(TABS.findIndex(x=>x[0]===homeTab)+1)%TABS.length,nxt=TABS[nextIdx];
+  const nextIdx=(Math.max(0,TABS.findIndex(x=>x[0]===homeTab))+1)%TABS.length,nxt=TABS[nextIdx];
   let pane;
   if(homeTab==='ask'){pane=h('div',{class:'pane'},h('div',{class:'ptitle'},'💬 Question of the day'),qotdBox(),ptsMeter())}
   else if(homeTab==='news'){pane=h('div',{class:'pane'},h('div',{class:'ptitle'},'📰 The News'),newsBox(),
