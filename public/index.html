@@ -407,6 +407,8 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .tapit.got{animation:tapgot .7s forwards}.tapit.bye{transition:opacity .6s;opacity:0}
 @keyframes tapin{from{transform:scale(0)}to{transform:scale(1)}}@keyframes bob{50%{transform:translateY(-12px)}}@keyframes tapgot{to{transform:scale(2.2) rotate(20deg);opacity:0}}
 .sp-hi{font-family:var(--serif,serif);font-size:2.6rem;color:#fff;margin-bottom:6px}
+.sp-ver{margin-top:22px;font-size:.85rem;opacity:.6;letter-spacing:.04em}
+.h3 .homebtns{display:flex!important;justify-content:center}.h3 .homebtns .btn{width:auto!important;min-width:260px}
 </style>
 </head>
 <body>
@@ -529,7 +531,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='7.8',APP_DATE='November 21, 2026';
+const APP_VERSION='7.9',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -546,8 +548,8 @@ function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=fals
       h('div',{class:'stars'},wins?`⭐ You've won ${wins} game${wins>1?'s':''} today!`:'Ready for a game?'),
       S.autoplay?h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))
         :h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
-      h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',onclick:movieNight},'🎟️ Movie Night')),h('button',{class:'btn memb',onclick:memoryMinute},'🧠 Memory minute'))}
-  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
+      h('div',{class:'row homebtns'},h('button',{class:'btn',onclick:movieNight},'🎟️ Movie Night')))}
+  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
       h('div',{class:'row',style:'margin-top:14px'},h('button',{class:'btn good bignext',onclick:()=>go('play')},'🎲 Let’s play ›')))}
   if(homeTab==='today'&&S.qotdAuto!==false){const day=Math.floor(Date.now()/864e5),A=store.get('qotdAns',{});
     if(A.d!==day)timers.push(setTimeout(()=>{if(homeTab!=='today'||inGame||document.querySelector('.ov,.exlayer,.splash')||!document.querySelector('.h3'))return;home('ask')},10000))}
@@ -2098,9 +2100,9 @@ function newsQuiz(n,box){if(!n.q)return null;const w=h('div',{class:'nq'});const
     if(ok){beep('win');statAdd('newsq');w.innerHTML='';w.append(h('div',{class:'nqh ok'},`✔ Yes! ${t}. You were paying attention!`));lauPop('You got it! ⭐')}
     else{e.target.classList.add('nope');e.target.disabled=true;lauPop('Not quite. Try another one!')}fitHome()}},t))));return w}
 const MEM_SETS=[['🍎 Apple','🌹 Rose','🐶 Dog','🔑 Key','🎈 Balloon','☂️ Umbrella','🍰 Cake','🐟 Fish','🚗 Car','⏰ Clock','🎩 Hat','🌙 Moon','🍌 Banana','📚 Books','🐱 Cat','⭐ Star','🍦 Ice cream','🔔 Bell']];
-function memoryMinute(){beep('tap');const all=shuffle(MEM_SETS[0].slice());const pick3=all.slice(0,3),choices=shuffle(all.slice(0,6));
+function memoryMinute(fromBreak){beep('tap');const all=shuffle(MEM_SETS[0].slice());const pick3=all.slice(0,3),choices=shuffle(all.slice(0,6));
   const L=h('div',{class:'exlayer memx'});const inner=h('div',{class:'mem-in'});L.append(inner);document.body.append(L);lauForce=false;
-  const close=()=>{L.remove();home('play')};
+  const close=()=>{L.remove();if(!fromBreak)home('play')};
   const show=()=>{inner.innerHTML='';let n=8;const cnt=h('div',{class:'msg'},'');
     inner.append(h('div',{class:'ptitle'},'🧠 Memory minute'),h('div',{class:'bye-s'},'Look closely and remember these 3 things!'),h('div',{class:'mem-row'},pick3.map(x=>h('div',{class:'mem-card'},h('div',{class:'mem-ic'},x.split(' ')[0]),x.split(' ').slice(1).join(' ')))),cnt,
       h('button',{class:'btn alt',style:'margin-top:14px',onclick:()=>{clearInterval(t);ask()}},'I’m ready ›'));
@@ -2133,7 +2135,9 @@ setInterval(()=>{if(!inGame||document.hidden||document.querySelector('.ov,.exlay
   beep('good');say(kind==='q'?`Question time, ${N()}!`:kind==='x'?`Stretch break, ${N()}!`:'');
   if(kind==='q')modal(`Question time, ${N()}!`,"Here are 3 quick questions. Your game will be right here when you're done.",
     [["Let's go!",()=>{store.set('nextBreak','x');playSec=0;store.set('playSec',0);trivia(true)},'good'],['In a few minutes',snooze,'alt']],h('div',{style:'font-size:4rem'},'❓'));
-  else if(kind==='sg'){store.set('nextBreak','q');playSec=0;store.set('playSec',0);if(!singAsk()){playSec=(S.breakMin||4)*60;store.set('playSec',playSec)}}
+  else if(kind==='mm'){store.set('nextBreak','q');playSec=0;store.set('playSec',0);beep('good');say(`Memory minute, ${N()}! Want to see if you can remember three things?`);
+    modal(`🧠 Memory minute, ${N()}!`,'Look at 3 pictures, then tap the ones you remember.',[["Let's try!",()=>{stopSay();memoryMinute(true)},'good'],['In a few minutes',()=>{stopSay();snooze()},'alt']],h('div',{style:'font-size:4rem'},'🧠'))}
+  else if(kind==='sg'){store.set('nextBreak','mm');playSec=0;store.set('playSec',0);if(!singAsk()){playSec=(S.breakMin||4)*60;store.set('playSec',playSec)}}
   else if(kind==='my'){store.set('nextBreak','sg');playSec=0;store.set('playSec',0);if(S.mystOn===false||!mystAsk()){playSec=(S.breakMin||4)*60;store.set('playSec',playSec)}}
   else if(kind==='st'){store.set('nextBreak','my');playSec=0;store.set('playSec',0);if(!S.storyOn||!storyAsk()){playSec=(S.breakMin||4)*60;store.set('playSec',playSec)}}
   else if(kind==='v'){store.set('nextBreak','st');playSec=0;store.set('playSec',0);if(!S.inspOn||!inspAsk()){playSec=(S.breakMin||4)*60;store.set('playSec',playSec)}}
@@ -2163,7 +2167,7 @@ function splash(){const vi=store.get('spIdx',0);store.set('spIdx',vi+1);const V=
   const logo=h('div',{class:'sp-logo'},(()=>{const m=h('div',{class:'sp-mark'});m.innerHTML='<svg viewBox="0 0 80 80" width="96" height="96"><circle cx="40" cy="40" r="37" fill="none" stroke="#d9bd78" stroke-width="1.6"/><circle cx="31" cy="40" r="15" fill="none" stroke="#fff" stroke-width="3"/><circle cx="49" cy="40" r="15" fill="none" stroke="#d9bd78" stroke-width="3"/></svg>';return m})(),
     h('div',{class:'sp-name'},'Elder Link Daily'),h('div',{class:'sp-rule'}),h('div',{class:'sp-tag'},'Every day, a little brighter'),spScene(1,V));
   const greet=h('div',{class:'sp-greet'},h('div',{class:'sp-hi'},`${g},`),h('div',{class:'sp-who'},`${N()}!`),h('div',{class:'sp-date'},`Today is ${d}`),
-    h('button',{class:'sp-go',onclick:go},'Tap to begin  ›'));
+    h('button',{class:'sp-go',onclick:go},'Tap to begin  ›'),h('div',{class:'sp-ver'},`Version ${APP_VERSION} · ${APP_DATE}`));
   const nar=S.narrator==null?'Laurie':S.narrator;
   const narr=nar?h('div',{class:'sp-nar'},h('div',{class:'sp-hi'},`Hi, ${N()}!`),h('div',{class:'sp-small'},'Your narrator today is'),spScene(2,V),h('div',{class:'sp-who2'},nar),h('div',{class:'sp-tag'},'She’ll read your stories, mysteries and verses')):null;
   L.append(logo,narr,greet);document.body.append(L);
