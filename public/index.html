@@ -529,7 +529,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='7.7',APP_DATE='November 21, 2026';
+const APP_VERSION='7.8',APP_DATE='November 21, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -548,9 +548,9 @@ function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=fals
         :h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
       h('div',{class:'row homebtns'},myShows().length?h('button',{class:'btn',onclick:showsScreen},'📺 My Shows'):null,h('button',{class:'btn',onclick:singMenu},'🎶 Sing-along'),h('button',{class:'btn',onclick:movieNight},'🎟️ Movie Night')),h('button',{class:'btn memb',onclick:memoryMinute},'🧠 Memory minute'))}
   else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:settings,'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'ver'},`Version ${APP_VERSION} · ${APP_DATE}`),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
-      h('div',{class:'row',style:'margin-top:14px'},h('button',{class:'btn good bignext',onclick:()=>go('ask')},'💬 Question of the day ›')))}
-  if(homeTab==='today'&&S.qotdAuto!==false&&store.get('qotdAutoDay','')!==today()){const day=Math.floor(Date.now()/864e5),A=store.get('qotdAns',{});
-    if(A.d!==day)timers.push(setTimeout(()=>{if(homeTab!=='today'||inGame||document.querySelector('.ov,.exlayer,.splash')||!document.querySelector('.h3'))return;store.set('qotdAutoDay',today());home('ask')},12000))}
+      h('div',{class:'row',style:'margin-top:14px'},h('button',{class:'btn good bignext',onclick:()=>go('play')},'🎲 Let’s play ›')))}
+  if(homeTab==='today'&&S.qotdAuto!==false){const day=Math.floor(Date.now()/864e5),A=store.get('qotdAns',{});
+    if(A.d!==day)timers.push(setTimeout(()=>{if(homeTab!=='today'||inGame||document.querySelector('.ov,.exlayer,.splash')||!document.querySelector('.h3'))return;home('ask')},10000))}
   app.append(h('div',{class:'wrap homegrid h3'},pane,
     h('div',{class:'tabbar'},TABS.map(([k,ic,t])=>h('button',{class:'tab'+(k===homeTab?' on':''),onclick:()=>go(k)},h('span',{class:'tic'},ic),t)))));
   window.scrollTo(0,0);fitHomeSoon()}
