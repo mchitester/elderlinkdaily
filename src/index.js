@@ -14,9 +14,11 @@ async function tts(request, env, url) {
   if (!okRef) return new Response('forbidden', { status: 403 });
   let text = (url.searchParams.get('t') || '').replace(/\s+/g, ' ').trim();
   if (!text || text.length > 900) return new Response('bad text', { status: 400 });
+  const rec = await env.VOICE.getWithMetadata('rec:' + await sha(norm(text)), 'arrayBuffer');
+  if (rec.value) return new Response(rec.value, { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': (rec.metadata && rec.metadata.type) || 'audio/mp4', 'Cache-Control': 'no-cache', 'X-Voice': 'rec', 'Access-Control-Expose-Headers': 'X-Voice' } });
   const key = VER + ':' + await sha(text);
   const hit = env.VOICE && await env.VOICE.get(key, 'arrayBuffer');
-  const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Voice': 'cache' };
+  const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'X-Voice', 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-cache', 'X-Voice': 'cache' };
   if (hit) return new Response(hit, { headers });
   const apiKey = env.ELEVEN_KEY || await env.VOICE.get('cfg:eleven');
   if (!apiKey) return new Response('no key', { status: 503 });
@@ -36,6 +38,35 @@ async function tts(request, env, url) {
   await env.VOICE.put(day, String(used + text.length), { expirationTtl: 3 * 86400 });
   headers['X-Voice'] = 'new';
   return new Response(buf, { headers });
+}
+
+const LAURIE_HASH = '3389ffb066991f7714f4676370e5615caab1e0a9a5499647f96b507e049adbd0';
+const norm = t => String(t).toLowerCase().replace(/[\u2018\u2019\u201c\u201d'"]/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+
+async function recSave(request, env, url) {
+  if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 });
+  const text = url.searchParams.get('t') || '';
+  const n = norm(text);
+  if (!n) return new Response('bad', { status: 400 });
+  const buf = await request.arrayBuffer();
+  if (buf.byteLength < 2000 || buf.byteLength > 5e6) return new Response('bad size', { status: 400 });
+  const type = request.headers.get('Content-Type') || 'audio/mp4';
+  await env.VOICE.put('rec:' + await sha(n), buf, { metadata: { type, text: text.slice(0, 300), at: Date.now() } });
+  return new Response('saved', { headers: { 'Access-Control-Allow-Origin': '*' } });
+}
+
+async function recList(env, url) {
+  if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 });
+  let out = [], cursor;
+  do { const l = await env.VOICE.list({ prefix: 'rec:', cursor }); out = out.concat(l.keys.map(k => k.metadata && k.metadata.text).filter(Boolean)); cursor = l.list_complete ? null : l.cursor; } while (cursor);
+  return new Response(JSON.stringify(out.map(norm)), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+}
+
+async function recGet(env, url) {
+  const t = url.searchParams.get('t') || '';
+  const r = await env.VOICE.getWithMetadata('rec:' + await sha(norm(t)), 'arrayBuffer');
+  if (!r.value) return new Response('none', { status: 404 });
+  return new Response(r.value, { headers: { 'Content-Type': (r.metadata && r.metadata.type) || 'audio/mp4', 'Cache-Control': 'no-store' } });
 }
 
 const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
@@ -83,6 +114,9 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/rec' && request.method === 'POST') return recSave(request, env, url);
+    if (url.pathname === '/rec-list') return recList(env, url);
+    if (url.pathname === '/rec-get') { if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 }); return recGet(env, url); }
     if (url.pathname === '/report' && request.method === 'POST') return saveReport(request, env);
     if (url.pathname === '/family') return familyPage(env, url);
     if (url.pathname === '/tts') {
