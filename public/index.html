@@ -548,7 +548,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='9.0',APP_DATE='November 23, 2026';
+const APP_VERSION='9.1',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -2251,13 +2251,13 @@ function facNext(){const now=new Date(),cur=String(now.getHours()).padStart(2,'0
 function facLine(){if(!S.facility)return null;const d=store.get('facEv_'+ym(),{});const nx=facNext();
   if(!d||(!d.events&&!d.photo))return null;
   return h('button',{class:'facline',onclick:()=>{beep('tap');facDay()}},nx?h('span',{},`🗓️ Next at ${facShort()}: `,h('b',{},`${t12(nx.t)} ${nx.n}`)):h('span',{},`🗓️ See today at ${facShort()}`))}
-function facDay(){const L=h('div',{class:'exlayer memx',style:'align-items:flex-start;overflow-y:auto'});const inner=h('div',{class:'mem-in',style:'max-width:680px'});L.append(inner);document.body.append(L);
+function facDay(fromStart){const L=h('div',{class:'exlayer memx',style:'align-items:flex-start;overflow-y:auto'});const inner=h('div',{class:'mem-in',style:'max-width:680px'});L.append(inner);document.body.append(L);
   const d=store.get('facEv_'+ym(),{}),list=facToday(),cur=new Date().toTimeString().slice(0,5);
-  inner.append(h('div',{class:'ptitle'},`🗓️ Today at ${facShort()}`),
+  inner.append(h('div',{class:'ptitle'},fromStart?`🗓️ Today at ${facShort()}, ${N()}`:`🗓️ Today at ${facShort()}`),
     list.length?h('div',{class:'facday'},list.map(e=>h('div',{class:'facev'+(e.t<cur?' past':'')+(e.hi?' hi':'')},h('b',{},t12(e.t)),h('span',{},e.n)))):h('div',{class:'msg'},d&&d.photo?'Today’s activities haven’t been typed in yet. Tap below to see the calendar.':'No activities listed for today.'),
     d&&d.photo?h('button',{class:'btn alt',style:'margin-top:16px',onclick:()=>{const im=h('img',{src:`${FAC_BASE}/fac-photo?f=${S.facility}&m=${ym()}`,style:'width:100%;border-radius:14px;margin-top:12px'});inner.append(im)}},'📷 See the whole calendar'):null,
-    h('div',{class:'row',style:'margin-top:18px'},h('button',{class:'btn good',onclick:()=>L.remove()},'✔ Done')));
-  const nx=list.find(e=>e.t>=cur);if(nx)say(`Today at ${facShort()}, ${N()}: next is ${nx.n} at ${t12(nx.t)}.`)}
+    h('div',{class:'row',style:'margin-top:18px'},h('button',{class:'btn good',style:'font-size:1.4rem;min-height:72px;padding:12px 40px',onclick:()=>{stopSay();L.remove();if(fromStart||document.querySelector('.h3'))home(homeTab)}},fromStart?'✔ Sounds good!':'✔ Done')));
+  const nx=list.find(e=>e.t>=cur);if(nx)say(fromStart?`Here’s what’s happening today at ${facShort()}, ${N()}. Next up is ${nx.n} at ${t12(nx.t)}.`:`Today at ${facShort()}, ${N()}: next is ${nx.n} at ${t12(nx.t)}.`)}
 function facCheck(){if(!S.facility||S.facRemind==='off'||Date.now()<quietUntil||document.querySelector('.splash'))return;const now=new Date(),m=now.getHours()*60+now.getMinutes();
   for(const e of facToday()){if(S.facRemind!=='all'&&!e.hi)continue;const[hh,mm]=e.t.split(':').map(Number),t=hh*60+mm,key='facR_'+e.d+e.t+e.n;
     if(m>=t-15&&m<t-2&&!store.get(key,false)){if(document.querySelector('.ov,.exlayer'))return;store.set(key,true);beep('good');
@@ -2332,7 +2332,7 @@ function splash(){const vi=store.get('spIdx',0);store.set('spIdx',vi+1);const V=
   if(narr){setTimeout(()=>{if(!L.classList.contains('step2')){L.classList.add('stepN');narSay()}},3600);setTimeout(()=>{L.classList.add('step2')},8200)}
   else setTimeout(()=>L.classList.add('step2'),3600);
   const auto=setTimeout(go,20000);
-  function go(){if(gone)return;gone=true;clearTimeout(auto);quietUntil=Date.now()+60000;document.querySelectorAll('.ov,.exlayer').forEach(x=>x.remove());try{home()}catch(e){}try{beep('good')}catch(e){}
+  function go(){if(gone)return;gone=true;clearTimeout(auto);quietUntil=Date.now()+60000;document.querySelectorAll('.ov,.exlayer').forEach(x=>x.remove());try{home()}catch(e){}try{beep('good')}catch(e){}try{if(S.facility){const d=store.get('facEv_'+ym(),{});if(facToday().length||(d&&d.photo))setTimeout(()=>{if(!document.querySelector('.ov,.exlayer'))facDay(true)},900)}}catch(e){}
     if(S.speak)try{say(`${g}, ${N()}! Today is ${d}.`)}catch(e){}
     L.classList.add('out');setTimeout(()=>L.remove(),700)}
   L.addEventListener('click',e=>{if(L.classList.contains('step2'))go();else if(narr&&!L.classList.contains('stepN')){L.classList.add('stepN');narSay()}else{L.classList.add('step2')}})}
