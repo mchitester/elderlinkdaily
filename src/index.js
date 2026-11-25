@@ -294,6 +294,16 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/face') {
+      const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+      if (request.method === 'POST') {
+        if (!await hhCheck(env, hh, url.searchParams.get('hk') || '')) return new Response('forbidden', { status: 403 });
+        const buf = await request.arrayBuffer(); if (buf.byteLength < 3000 || buf.byteLength > 3e6) return new Response('bad size', { status: 400 });
+        await env.VOICE.put('hhface:' + hh, buf); return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+      }
+      const img = await env.VOICE.get('hhface:' + hh, 'arrayBuffer');
+      return img ? new Response(img, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' } }) : new Response('none', { status: 404 });
+    }
     if (url.pathname.startsWith('/fac-')) return facRoute(request, env, url);
     if (url.pathname === '/admin') return adminPage(env, url);
     if (url.pathname === '/admin-push' && request.method === 'POST') return adminPush(request, env, url);
