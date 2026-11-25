@@ -538,7 +538,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='8.7',APP_DATE='November 23, 2026';
+const APP_VERSION='8.8',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -1173,7 +1173,7 @@ function statAdd(k,n){const[all,d]=stat();d[k]=(d[k]||0)+(n||1);try{if(PTS[k])ea
 let statDirty=false,DB=null;
 (function initDB(k){try{if(window.claude&&claude.use){claude.use('db').then(d=>{DB=d}).catch(()=>{});return}}catch(e){}if(k<20)setTimeout(()=>initDB(k+1),1000)})(0);
 function sendReport(){if(!S.reportOn||!LV_SITE)return;const[,d]=stat();statDirty=false;
-  fetch('/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},d,{hh:store.get('household',''),hk:store.get('hhKey',''),day:today(),name:N(),pts:store.get('pts',0),tickets:store.get('tickets',0),ver:APP_VERSION,voice:lvLast+(lvFail?' x'+lvFail:''),updated:new Date().toISOString()}))}).catch(()=>{statDirty=true})}
+  fetch('/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},d,{hh:store.get('household',''),hk:store.get('hhKey',''),day:today(),name:N(),pts:store.get('pts',0),tickets:store.get('tickets',0),ver:APP_VERSION,voice:lvLast+(lvFail?' x'+lvFail:''),cfg:(()=>{const c=Object.assign({},S);delete c.adminPin;return c})(),updated:new Date().toISOString()}))}).catch(()=>{statDirty=true})}
 setInterval(()=>{if(statDirty)sendReport()},120000);addEventListener('visibilitychange',()=>{if(document.hidden&&statDirty)sendReport()});
 setInterval(()=>{if(!statDirty||!DB||!S.reportOn)return;statDirty=false;const[,d]=stat();
   try{DB.doc('report/'+today()).set(Object.assign({},d,{day:today(),name:N(),updated:new Date().toISOString()})).catch(()=>{statDirty=true})}catch(e){}},90000);
@@ -2207,6 +2207,13 @@ function voiceSetup(){const L=h('div',{class:'exlayer memx',style:'align-items:f
       store.set('customVoice',name);S.narrator=name;S.voiceMode='custom';lvFail=0;saveS();try{stream&&stream.getTracks().forEach(t=>t.stop())}catch(e){}
       L.remove();say(`Hi, ${N()}! It’s me, ${name}! I’ll be your narrator from now on.`);settings()}
     catch(e){msg.textContent='That didn’t work. Check the internet and try again.';sendB.disabled=false}}}
+
+/* ---------- remote settings from Marty (admin) ---------- */
+function cfgPull(){if(!LV_SITE)return;const hh=store.get('household','');fetch(`/cfg?h=${hh||'main'}&k=${encodeURIComponent(store.get('hhKey',''))}`,{cache:'no-store'}).then(r=>r.json()).then(c=>{
+  if(!c||!c.v||c.v<=store.get('cfgV',0)||!c.set)return;store.set('cfgV',c.v);const allowed=Object.keys(S).concat(['adminPin','voiceMode','qotdAuto','movieFree','narrator']);
+  Object.keys(c.set).forEach(k=>{if(allowed.includes(k))S[k]=c.set[k]});saveS();statDirty=true;
+  if(document.querySelector('.h3')&&!document.querySelector('.ov,.exlayer'))home(homeTab)}).catch(()=>{})}
+setTimeout(cfgPull,3000);setInterval(cfgPull,10*60e3);addEventListener('visibilitychange',()=>{if(!document.hidden)cfgPull()});
 
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);

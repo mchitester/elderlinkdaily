@@ -115,6 +115,80 @@ async function voiceNew(request, env, url) {
   return new Response(JSON.stringify({ ok: true, name }), { headers: { 'Content-Type': 'application/json' } });
 }
 
+
+const ADMIN_HASH = '5ec62cf28eb5aff85268af7bf69e81b10469cfed46ea34aa02d0c36b698d41de';
+const LABELS = { name: 'Name', born: 'Year born', narrator: 'Narrator name', voiceMode: 'Narrator voice (laurie / custom / ipad)', adminPin: 'Helper PIN (blank = no lock)', size: 'Text size (L / XL)',
+  breaks: 'Breaks during games', breakMin: 'Minutes between breaks', help: 'Highlight playable cards', speak: 'Narration on', sound: 'Sound effects', autoplay: 'Auto-play games',
+  mealsOn: 'Meal reminders', showerOn: 'Shower reminders', water: 'Water reminders', o2On: 'Oxygen checks', o2Min: 'Oxygen low warning %', callsOn: 'Call-family reminders', callsPerDay: 'Calls per day', callers: 'Family to call (comma list)',
+  storyOn: 'Stories', mystOn: 'Mysteries', singOn: 'Sing-along', inspOn: 'Inspiration', movieOn: 'Movie night', movieFree: 'Movies free (no ticket)', qotdAuto: 'Auto question of the day',
+  lauSpeed: 'Voice speed (1, 1.12, 1.25)', lauPtsMin: 'Points reminder every N min (0 = off)', tapMin: 'Tap-the-picture every N min (0 = off)', others: 'Card opponents (comma list)', reportOn: 'Send activity report' };
+
+async function adminOk(url) { return (await sha(url.searchParams.get('a') || '')) === ADMIN_HASH; }
+
+async function households(env) {
+  const out = [];
+  const lr = await env.VOICE.list({ prefix: 'rep:2' });
+  const lastLegacy = lr.keys.map(k => k.name).filter(n => /^rep:\d{4}-/.test(n)).sort().pop();
+  out.push({ h: 'main', label: 'Mama C (original iPad)', rep: lastLegacy ? await env.VOICE.get(lastLegacy, 'json') : null });
+  const hk = await env.VOICE.list({ prefix: 'hhk:' });
+  for (const k of hk.keys) {
+    const h = k.name.slice(4); if (h.startsWith('zztest')) continue;
+    const l = await env.VOICE.list({ prefix: 'rep:' + h + ':' });
+    const last = l.keys.map(x => x.name).sort().pop();
+    out.push({ h, rep: last ? await env.VOICE.get(last, 'json') : null });
+  }
+  for (const o of out) o.push = await env.VOICE.get('cfg:' + o.h, 'json');
+  return out;
+}
+
+async function adminPage(env, url) {
+  if (!await adminOk(url)) return new Response('Not found', { status: 404 });
+  const hs = await households(env);
+  const a = esc(url.searchParams.get('a'));
+  const card = o => {
+    const r = o.rep || {}, cfg = r.cfg || {};
+    const fields = Object.keys(LABELS).filter(k => k in cfg || ['adminPin', 'name', 'born', 'narrator', 'voiceMode'].includes(k)).map(k => {
+      const v = cfg[k];
+      const val = Array.isArray(v) ? v.filter(Boolean).join(', ') : (v ?? '');
+      if (typeof v === 'boolean') return `<label class="f"><span>${LABELS[k]}</span><select name="${k}"><option value="">(no change)</option><option value="true"${v ? ' data-cur' : ''}>On${v ? ' (now)' : ''}</option><option value="false"${!v ? ' data-cur' : ''}>Off${!v ? ' (now)' : ''}</option></select></label>`;
+      return `<label class="f"><span>${LABELS[k]}</span><input name="${k}" placeholder="${esc(k === 'adminPin' ? '(hidden)' : val)}" data-type="${Array.isArray(v) ? 'list' : typeof v}"></label>`;
+    }).join('');
+    return `<section><h2>${esc(o.label || (r.name ? r.name + '’s iPad' : 'Household ' + o.h))}</h2>
+      <p class="u">Last seen: ${r.updated ? new Date(r.updated).toLocaleString('en-US', { timeZone: 'America/New_York' }) : 'never'} · App ${esc(r.ver || '?')} · Voice ${esc(r.voice || '?')} · ID ${o.h}</p>
+      ${o.push ? `<p class="pend">Pending change (sent ${new Date(o.push.v).toLocaleString('en-US', { timeZone: 'America/New_York' })}): ${esc(JSON.stringify(o.push.set))}</p>` : ''}
+      <details><summary>Change settings</summary><form data-h="${o.h}">${fields}<button type="submit">Send changes</button><p class="u">Only fields you fill in are changed. They apply the next time the app is open (within 10 minutes).</p></form></details></section>`;
+  };
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Elder Link Admin</title>
+<style>body{font-family:-apple-system,system-ui,sans-serif;background:#f7f2e8;color:#1b2a4a;margin:0 auto;padding:16px;max-width:680px}h1{font-family:Georgia,serif}section{background:#fff;border-radius:16px;padding:14px 16px;margin:14px 0;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+h2{margin:0;font-size:1.2rem}.u{color:#888;font-size:.85rem}.pend{background:#fff6dc;padding:8px;border-radius:8px;font-size:.85rem;word-break:break-all}summary{cursor:pointer;font-weight:700;margin:8px 0}
+.f{display:block;margin:8px 0}.f span{display:block;font-size:.85rem;font-weight:600;margin-bottom:2px}.f input,.f select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8cdb4;border-radius:10px;font-size:1rem}
+button{background:#2e6b47;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-size:1rem;font-weight:700;margin-top:8px}</style></head><body>
+<h1>🛠️ Elder Link Admin</h1><p class="u">Every iPad using the app. Changes you send are applied the next time that iPad has the app open.</p>${hs.map(card).join('')}
+<script>document.querySelectorAll('form').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const set={};
+f.querySelectorAll('input,select').forEach(i=>{const v=i.value.trim();if(i.name==='adminPin'&&v==='-'){set.adminPin='';return}if(v==='')return;const t=i.dataset.type;
+ set[i.name]=i.tagName==='SELECT'?v==='true':t==='number'?Number(v):t==='list'?v.split(',').map(x=>x.trim()).filter(Boolean):v});
+if(!Object.keys(set).length){alert('Fill in at least one field.');return}
+const r=await fetch('/admin-push?a=${a}&h='+f.dataset.h,{method:'POST',body:JSON.stringify(set)});alert(r.ok?'Sent! It applies the next time the app is open.':'Something went wrong.');if(r.ok)location.reload()})</script></body></html>`;
+  return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
+async function adminPush(request, env, url) {
+  if (!await adminOk(url)) return new Response('forbidden', { status: 403 });
+  const h = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  const set = JSON.parse(await request.text());
+  const prev = await env.VOICE.get('cfg:' + h, 'json');
+  const merged = Object.assign({}, prev && prev.set, set);
+  await env.VOICE.put('cfg:' + h, JSON.stringify({ v: Date.now(), set: merged }), { expirationTtl: 60 * 86400 });
+  return new Response('ok');
+}
+
+async function cfgGet(env, url) {
+  const h = (url.searchParams.get('h') || 'main').replace(/[^a-z0-9]/g, '');
+  if (h !== 'main') { const stored = await env.VOICE.get('hhk:' + h); if (!stored || stored !== await sha(url.searchParams.get('k') || '')) return new Response('{}', { headers: { 'Content-Type': 'application/json' } }); }
+  const c = await env.VOICE.get('cfg:' + h);
+  return new Response(c || '{}', { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+}
+
 const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -174,6 +248,9 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/admin') return adminPage(env, url);
+    if (url.pathname === '/admin-push' && request.method === 'POST') return adminPush(request, env, url);
+    if (url.pathname === '/cfg') return cfgGet(env, url);
     if (url.pathname === '/voice-new' && request.method === 'POST') return voiceNew(request, env, url);
     if (url.pathname === '/rec' && request.method === 'POST') return recSave(request, env, url);
     if (url.pathname === '/rec-list') return recList(env, url);
