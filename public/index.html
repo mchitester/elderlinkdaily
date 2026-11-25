@@ -548,7 +548,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='9.2',APP_DATE='November 23, 2026';
+const APP_VERSION='9.2',APP_DATE='November 25, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -2252,7 +2252,7 @@ function facNext(){const now=new Date(),cur=String(now.getHours()).padStart(2,'0
   const L=facToday();return L.find(e=>e.t>=cur)||null}
 function facLine(){if(!S.facility)return null;const d=store.get('facEv_'+ym(),{});const nx=facNext();
   if(!d||(!d.events&&!d.photo))return null;
-  return h('button',{class:'facline',onclick:()=>{beep('tap');facDay()}},nx?h('span',{},`🗓️ Next at ${facShort()}: `,h('b',{},`${t12(nx.t)} ${nx.n}`)):h('span',{},`🗓️ See today at ${facShort()}`))}
+  return h('button',{class:'facline',onclick:()=>{beep('tap');facDay()}},nx?h('span',{},`🗓️ Next at ${facShort()}: `,h('b',{},`${t12(nx.t)} ${nx.n}`)):h('span',{},facOn(tomorrowKey()).length?`🗓️ See tomorrow at ${facShort()}`:`🗓️ See today at ${facShort()}`))}
 function facDay(fromStart){const L=h('div',{class:'exlayer memx',style:'align-items:flex-start;overflow-y:auto'});const inner=h('div',{class:'mem-in',style:'max-width:680px'});L.append(inner);document.body.append(L);
   const d=store.get('facEv_'+ym(),{}),cur=new Date().toTimeString().slice(0,5);let list=facToday(),tmr=false;
   if(!list.some(e=>e.t>=cur)&&facOn(tomorrowKey()).length){list=facOn(tomorrowKey());tmr=true}
