@@ -415,6 +415,11 @@ h1,h2,h3,.hi,.mbox .big,.top h1,.gtile b{font-family:var(--serif);letter-spacing
 .vid-start{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:1.6rem!important;min-height:84px;padding:14px 30px!important}
 .btn.pulse{animation:lauBounce .5s ease-in-out infinite alternate}
 .pinv{font-size:2.2rem;letter-spacing:.3em;min-height:1.4em;text-align:center;margin:6px 0 10px}.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto}.pinpad button{font:inherit;font-size:1.6rem;font-weight:700;min-height:64px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.facline{display:block;margin:14px auto 0;font:inherit;font-size:1.25rem;background:#fff6dc;border:2px solid var(--goldl);border-radius:16px;padding:12px 18px;color:var(--ink);cursor:pointer;max-width:620px}
+.facday{display:flex;flex-direction:column;gap:8px;margin:12px 0}.facev{display:flex;gap:14px;background:var(--card);border-radius:14px;padding:12px 16px;font-size:1.3rem;box-shadow:0 0 0 1px var(--line);text-align:left}.facev b{min-width:96px}.facev.hi{box-shadow:0 0 0 2px var(--gold);background:#fffaea}.facev.past{opacity:.45}
+.facpick{display:flex;flex-direction:column;gap:8px;margin:8px 0}.facopt{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--card);box-shadow:0 0 0 1.5px var(--line);font-size:1.15rem;cursor:pointer;text-align:left}.facopt.on{box-shadow:0 0 0 3px var(--gold)}.facopt input{width:22px;height:22px}
+.facadd{margin-top:6px}.facadd summary{cursor:pointer;font-weight:700;padding:6px 0}.facadd input{display:block;width:100%;box-sizing:border-box;margin:6px 0;padding:10px;font-size:1.05rem;border-radius:10px;border:1px solid var(--line)}
+.onb-fac{max-width:520px;margin:10px auto 0;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -427,7 +432,7 @@ const WORDS=WL.w.split(' '), WORDSET=new Set(WORDS), SEEDS=WL.s.split(' ');
 const $=s=>document.querySelector(s);
 function h(tag,props,...kids){const e=document.createElement(tag);props=props||{};for(const k in props){const v=props[k];if(k==='class')e.className=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(k,v===true?'':v)}for(const c of kids.flat(3)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(c))}return e}
 const store={get(k,d){try{const v=localStorage.getItem('gr_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('gr_'+k,JSON.stringify(v))}catch(e){}}};
-let S=Object.assign({name:'Mama C',others:['Sam','Ruby','Joe'],size:'L',help:true,sound:true,breaks:true,breakMin:4,speak:true,water:true,reportOn:false,autoplay:true,mealsOn:true,showerOn:true,o2On:true,o2Min:95,callsOn:true,callsPerDay:1,inspOn:true,inspMix:'both',storyOn:true,mystOn:true,lauVoice:true,lauSpeed:1.12,lauPtsMin:12,tapMin:8,singOn:true,born:1934,movieOn:true,movieDay:5,movieTime:'19:00',callers:['Marty','Bill','Bob','David','Ricky','','','','','']},store.get('settings',{}));
+let S=Object.assign({name:'Mama C',others:['Sam','Ruby','Joe'],size:'L',help:true,sound:true,breaks:true,breakMin:4,speak:true,water:true,reportOn:false,autoplay:true,mealsOn:true,showerOn:true,o2On:true,o2Min:95,callsOn:true,callsPerDay:1,inspOn:true,inspMix:'both',storyOn:true,mystOn:true,facility:'',facName:'',facRemind:'hi',lauVoice:true,lauSpeed:1.12,lauPtsMin:12,tapMin:8,singOn:true,born:1934,movieOn:true,movieDay:5,movieTime:'19:00',callers:['Marty','Bill','Bob','David','Ricky','','','','','']},store.get('settings',{}));
 function applySize(){document.documentElement.style.setProperty('--fs',S.size==='XL'?'26px':'22px')}
 function saveS(){store.set('settings',S);applySize()}
 applySize();
@@ -538,7 +543,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='8.8',APP_DATE='November 23, 2026';
+const APP_VERSION='8.9',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -556,7 +561,7 @@ function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=fals
       S.autoplay?h('div',{class:'playbox'},h('div',{class:'msg',style:'margin:4px'},`First up: ${featured.ic} ${featured.t}`),h('button',{class:'btn good playbtn',onclick:nextGame},"▶ Let's play!"))
         :h('div',{class:'games'},GAMES.map(x=>h('button',{class:'gtile',onclick:()=>{beep('tap');x.fn()}},h('div',{class:'ic'},x.ic),h('div',{},h('b',{},x.t),h('span',{},x.d))))),
       h('div',{class:'row homebtns'},h('button',{class:'btn',onclick:movieNight},'🎟️ Movie Night')))}
-  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:()=>adminGate(settings),'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),
+  else{pane=h('div',{class:'hello'},h('button',{class:'gear',onclick:()=>adminGate(settings),'aria-label':'Settings'},'⚙︎'),h('button',{class:'byebtn',onclick:closeApp},'👋 Close'),h('div',{class:'brand'},'Elder Link Daily'),h('div',{class:'hi'},`${g}, ${N()}!`),todayBanner(),facLine(),
       h('div',{class:'row',style:'margin-top:14px'},h('button',{class:'btn good bignext',onclick:()=>go('play')},'🎲 Let’s play ›')))}
   if(homeTab==='today'&&S.qotdAuto!==false){const day=Math.floor(Date.now()/864e5),A=store.get('qotdAns',{});
     if(A.d!==day)timers.push(setTimeout(()=>{if(homeTab!=='today'||inGame||document.querySelector('.ov,.exlayer,.splash')||!document.querySelector('.h3'))return;home('ask')},10000))}
@@ -589,6 +594,9 @@ function settings(){const body=frame('Settings');const f=(label,val,ph)=>{const 
     fl?h('div',{class:'field'},h('label',{},'Private activity report link (bookmark it on your phone)'),h('div',{class:'msg small',style:'word-break:break-all;user-select:all'},fl),
       h('button',{class:'btn alt',onclick:()=>{try{navigator.clipboard.writeText(fl);beep('good')}catch(e){}}},'📋 Copy link')):h('div',{class:'msg small'},'Activity report: ask Marty for the link.'));
   body.append(helper);
+  body.append(h('div',{class:'card-box'},h('h3',{style:'margin:0 0 8px'},'🏡 Where she lives'),h('div',{class:'msg small'},'Pick her senior community to get its activity calendar and reminders.'),
+    facPicker((id,label)=>{S.facility=id;S.facName=label.replace(/,.*$/,'');saveS();facLoad()},{add:true}),
+    seg('Activity reminders (15 minutes before)','facRemind',[['hi','Main events'],['all','Every activity'],['off','Off']]),facUpload()));
   body.append(h('div',{class:'card-box'},fn,fBorn,f1,f2,f3,fNar,seg('Text size','size',[['L','Large'],['XL','Extra large']]),seg('Highlight cards that can be played','help',[[true,'On'],[false,'Off']]),seg('Sounds','sound',[[true,'On'],[false,'Off']]),seg('Games start automatically (she doesn\'t pick)','autoplay',[[true,'On'],[false,'Off']]),seg('Read questions and news out loud','speak',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:voicePick},'🗣️ Choose the reading voice')),seg('Meal reminders 30 minutes before breakfast (8:00), lunch (11:30) and dinner (5:00)','mealsOn',[[true,'On'],[false,'Off']]),seg('Ask if she showered (every other day once she says yes)','showerOn',[[true,'On'],[false,'Off']]),seg('Phone call reminders','callsOn',[[true,'On'],[false,'Off']]),seg('Call reminders per day','callsPerDay',[[1,'Once (afternoon)'],[2,'Twice (morning & afternoon)']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:rateGames},'⭐ Rate her games (1–5)')),h('div',{class:'field'},h('button',{class:'btn alt',onclick:callSetup},'📞 People to call (up to 10)')),seg('Oxygen check 30 minutes after she opens the app, then every 3 hours','o2On',[[true,'On'],[false,'Off']]),seg('Remind her to put on oxygen if below','o2Min',[[88,'88'],[90,'90'],[92,'92'],[94,'94'],[95,'95']]),seg('Story time (reads her a short story)','storyOn',[[true,'On'],[false,'Off']]),seg('Mystery break (she solves a short whodunit)','mystOn',[[true,'On'],[false,'Off']]),seg('Movie Night needs a ticket (500 points)','movieFree',[[false,'Yes'],[true,'No, movies are free']]),seg('Laurie’s “tap the picture” game','tapMin',[[0,'Off'],[5,'Every 5 min'],[8,'Every 8 min'],[15,'Every 15 min']]),seg('Laurie asks the question of the day by herself','qotdAuto',[[true,'On'],[false,'Off']]),seg('Laurie’s talking speed','lauSpeed',[[1,'Normal'],[1.12,'A little faster'],[1.25,'Faster']]),(()=>{const st=h('div',{class:'msg small'},'');return h('div',{class:'field'},h('button',{class:'btn alt',onclick:()=>{lvFail=0;st.textContent='Listening…';say(`Hi, ${N()}! It’s me, Laurie. Can you hear me?`);setTimeout(()=>{st.textContent=lvLast==='laurie-real'?'✔ That was Laurie’s own recording!':lvLast==='laurie'?'✔ That was Laurie’s real voice.':lvLast==='ipad'?(lvUse()?'That was the iPad voice.':'That was the iPad voice. Open elderlinkdaily.com for Laurie’s voice.'):'Laurie’s voice didn’t load ('+lvLast+'), so the iPad voice was used.'},3500)}},'🔊 Test Laurie’s voice'),st)})(),h('div',{class:'field'},h('button',{class:'btn alt',onclick:report},'📊 Activity report')),seg('Laurie reminds her of her points','lauPtsMin',[[0,'Off'],[5,'Every 5 min'],[12,'Every 12 min'],[20,'Every 20 min'],[30,'Every 30 min']]),seg('Sing-along break (carols & hymns)','singOn',[[true,'On'],[false,'Off']]),seg('Sing-along: go on to the next song by itself','singAuto',[[true,'On'],[false,'Off']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:showSetup},'📺 Her TV shows & Movie Night')),seg('Positive sayings & Bible verses','inspOn',[[true,'On'],[false,'Off']]),seg('Which kind','inspMix',[['both','Both'],['s','Sayings only'],['v','Bible verses only']]),h('div',{class:'field'},h('button',{class:'btn alt',onclick:inspFavs},'❤️ Her favorite sayings')),seg('Water reminder every 20 minutes of play','water',[[true,'On'],[false,'Off']]),seg('Pop-up breaks while playing (questions, stretch, news, sayings, stories)','breaks',[[true,'On'],[false,'Off']]),seg('Minutes of play between breaks','breakMin',[[3,'3'],[4,'4'],[5,'5'],[6,'6']]),h('div',{class:'field'},h('label',{},'For family'),h('button',{class:'btn alt',onclick:pickQuestions},'❓ Choose her trivia questions (Y / N)'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:famEditor},'👪 Add family questions'),h('div',{style:'height:10px'}),h('button',{class:'btn alt',onclick:report},'📊 Activity report')),
    h('div',{class:'row',style:'margin-top:16px'},h('button',{class:'btn good',onclick:()=>{S.name=iN.value.trim()||S.name;S.others=[i1.value,i2.value,i3.value].map(x=>x.trim());if(typeof iNar!=='undefined')S.narrator=iNar.value.trim();if(typeof iBorn!=='undefined'){const y=parseInt(iBorn.value);if(y>1900&&y<2010)S.born=y}saveS();home()}},'Save'))))}
 
@@ -2215,6 +2223,49 @@ function cfgPull(){if(!LV_SITE)return;const hh=store.get('household','');fetch(`
   if(document.querySelector('.h3')&&!document.querySelector('.ov,.exlayer'))home(homeTab)}).catch(()=>{})}
 setTimeout(cfgPull,3000);setInterval(cfgPull,10*60e3);addEventListener('visibilitychange',()=>{if(!document.hidden)cfgPull()});
 
+/* ---------- community activity calendar (e.g. The Gardens of Cuyahoga Falls) ---------- */
+const FAC_BASE=LV_SITE?'':'https://elderlinkdaily.com';
+const ym=(d)=>{d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
+const facShort=()=>{const n=S.facName||'';return /^the gardens/i.test(n)?'The Gardens':n.replace(/\s+of\s+.*/i,'')};
+function facLoad(){if(!S.facility)return;const now=new Date(),nx=new Date(now.getFullYear(),now.getMonth()+1,1);
+  [ym(now),ym(nx)].forEach(m=>fetch(`${FAC_BASE}/fac-events?f=${S.facility}&m=${m}`,{cache:'no-store'}).then(r=>r.json()).then(d=>{store.set('facEv_'+m,d)}).catch(()=>{}))}
+setTimeout(facLoad,2500);setInterval(facLoad,3600e3);
+function facToday(){const d=store.get('facEv_'+ym(),{});return ((d&&d.events)||[]).filter(e=>e.d===today()).sort((a,b)=>a.t<b.t?-1:1)}
+const t12=t=>{let[h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(m).padStart(2,'0')} ${ap}`};
+function facNext(){const now=new Date(),cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const L=facToday();return L.find(e=>e.t>=cur)||null}
+function facLine(){if(!S.facility)return null;const d=store.get('facEv_'+ym(),{});const nx=facNext();
+  if(!d||(!d.events&&!d.photo))return null;
+  return h('button',{class:'facline',onclick:()=>{beep('tap');facDay()}},nx?h('span',{},`🗓️ Next at ${facShort()}: `,h('b',{},`${t12(nx.t)} ${nx.n}`)):h('span',{},`🗓️ See today at ${facShort()}`))}
+function facDay(){const L=h('div',{class:'exlayer memx',style:'align-items:flex-start;overflow-y:auto'});const inner=h('div',{class:'mem-in',style:'max-width:680px'});L.append(inner);document.body.append(L);
+  const d=store.get('facEv_'+ym(),{}),list=facToday(),cur=new Date().toTimeString().slice(0,5);
+  inner.append(h('div',{class:'ptitle'},`🗓️ Today at ${facShort()}`),
+    list.length?h('div',{class:'facday'},list.map(e=>h('div',{class:'facev'+(e.t<cur?' past':'')+(e.hi?' hi':'')},h('b',{},t12(e.t)),h('span',{},e.n)))):h('div',{class:'msg'},d&&d.photo?'Today’s activities haven’t been typed in yet. Tap below to see the calendar.':'No activities listed for today.'),
+    d&&d.photo?h('button',{class:'btn alt',style:'margin-top:16px',onclick:()=>{const im=h('img',{src:`${FAC_BASE}/fac-photo?f=${S.facility}&m=${ym()}`,style:'width:100%;border-radius:14px;margin-top:12px'});inner.append(im)}},'📷 See the whole calendar'):null,
+    h('div',{class:'row',style:'margin-top:18px'},h('button',{class:'btn good',onclick:()=>L.remove()},'✔ Done')));
+  const nx=list.find(e=>e.t>=cur);if(nx)say(`Today at ${facShort()}, ${N()}: next is ${nx.n} at ${t12(nx.t)}.`)}
+function facCheck(){if(!S.facility||S.facRemind==='off'||Date.now()<quietUntil||document.querySelector('.splash'))return;const now=new Date(),m=now.getHours()*60+now.getMinutes();
+  for(const e of facToday()){if(S.facRemind!=='all'&&!e.hi)continue;const[hh,mm]=e.t.split(':').map(Number),t=hh*60+mm,key='facR_'+e.d+e.t+e.n;
+    if(m>=t-15&&m<t-2&&!store.get(key,false)){if(document.querySelector('.ov,.exlayer'))return;store.set(key,true);beep('good');
+      say(`${N()}, ${e.n} starts at ${t12(e.t)} at ${facShort()}. Would you like to go?`);
+      modal(`🗓️ ${e.n} at ${t12(e.t)}`,`It starts in about ${t-m} minutes at ${facShort()}. Your game will be right here when you get back.`,[['👍 I’m going!',()=>{stopSay();say('Have fun!')},'good'],['Not today',()=>stopSay(),'alt']],h('div',{style:'font-size:4rem'},'🎉'));return}}}
+setInterval(facCheck,30000);setTimeout(facCheck,6000);
+function facPicker(onPick,opts){opts=opts||{};const box=h('div',{class:'facpick'},h('div',{class:'msg small'},'Loading…'));
+  fetch(`${FAC_BASE}/fac-list`,{cache:'no-store'}).then(r=>r.json()).then(list=>{box.innerHTML='';
+    const items=list.map(f=>[f.id,f.name+(f.city?', '+f.city:'')]).concat([['','At home / somewhere else']]);
+    items.forEach(([id,label])=>box.append(h('label',{class:'facopt'+(S.facility===id||(!S.facility&&!id)?' on':'')},h('input',{type:'radio',name:'fac',checked:S.facility===id||(!S.facility&&!id),onchange:()=>{box.querySelectorAll('.facopt').forEach(x=>x.classList.remove('on'));box.querySelectorAll('input')[items.findIndex(x=>x[0]===id)].closest('.facopt').classList.add('on');onPick(id,id?label:'')}}),h('span',{},label))));
+    if(opts.add){const nm=h('input',{type:'text',placeholder:'Name of the community'}),ct=h('input',{type:'text',placeholder:'City'}),msg=h('div',{class:'msg small'});
+      box.append(h('details',{class:'facadd'},h('summary',{},'➕ Not listed? Add your community'),nm,ct,h('button',{class:'btn alt',onclick:async()=>{if(nm.value.trim().length<3){msg.textContent='Please type the name.';return}ensureHousehold();
+        const r=await fetch(`${FAC_BASE}/fac-add?h=${store.get('household','')}&hk=${encodeURIComponent(store.get('hhKey',''))}&name=${encodeURIComponent(nm.value.trim())}&city=${encodeURIComponent(ct.value.trim())}`,{method:'POST'}).then(r=>r.json()).catch(()=>({}));
+        if(r.ok){onPick(r.id,nm.value.trim());msg.textContent='Added! ✔ Now upload this month’s calendar below.';beep('good')}else msg.textContent='That didn’t work. Try again.'}},'Add it'),msg))}}).catch(()=>{box.innerHTML='';box.append(h('div',{class:'msg small'},'Couldn’t load the list. Check the internet.'))});return box}
+function facUpload(){const inp=h('input',{type:'file',accept:'image/*',style:'display:none'});const msg=h('div',{class:'msg small'});
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;msg.textContent='Uploading…';try{const img=await createImageBitmap(f);const sc=Math.min(1,2000/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));ensureHousehold();
+      const r=await fetch(`${FAC_BASE}/fac-photo?f=${S.facility}&m=${ym()}&h=${store.get('household','')}&hk=${encodeURIComponent(store.get('hhKey',''))}`,{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob}).then(r=>r.json());
+      msg.textContent=r.ok?'✔ Thanks! Everyone at this community can see it now. The activities will be typed in soon so the app can give reminders.':'That didn’t work. Try again.';facLoad()}catch(e){msg.textContent='That didn’t work. Try again.'}};
+  return h('div',{class:'field'},inp,h('button',{class:'btn alt',onclick:()=>{if(!S.facility){msg.textContent='Pick the community first.';return}inp.click()}},'📷 Upload this month’s activity calendar'),msg)}
+
 /* ---------- question & stretch breaks ---------- */
 let playSec=store.get('playSec',0);
 let waterSec=store.get('waterSec',0);
@@ -2350,13 +2401,15 @@ function onboard(){const L=h('div',{class:'splash onb'});document.body.append(L)
     card.append(h('div',{class:'onb-q'},`Nice to meet you, ${name}! What year were you born?`),
       h('div',{class:'onb-yr'},h('button',{class:'onb-pm',onclick:()=>set(year-1)},'−'),yv,h('button',{class:'onb-pm',onclick:()=>set(year+1)},'+')),age,
       h('div',{class:'onb-dec'},[1925,1930,1935,1940,1945,1950,1955,1960].map(d=>h('button',{onclick:()=>set(d)},String(d)))),
-      h('button',{class:'sp-go',style:'margin-top:26px',onclick:step4},'Next  ›'));set(year)}
+      h('button',{class:'sp-go',style:'margin-top:26px',onclick:stepFac},'Next  ›'));set(year)}
+  function stepFac(){card.innerHTML='';card.append(h('div',{class:'onb-q'},'Where do you live?'),h('div',{class:'onb-fac'},facPicker((id,label)=>{S.facility=id;S.facName=label.replace(/,.*$/,'')})),h('button',{class:'sp-go',style:'margin-top:20px',onclick:step4},'Next  ›'))}
   function step4(){S.name=name;S.born=year;if(!store.get('household','')){store.set('household',rid(8));S.callers=['','','','','','','','',''];S.narrator='Laurie';S.reportOn=true}ensureHousehold();saveS();store.set('setupDone',true);card.innerHTML='';
     card.append(h('div',{class:'onb-q'},`Wonderful, ${name}!`),h('div',{class:'sp-tag',style:'max-width:560px;margin:14px auto 0'},`We’ll fill your trivia, stories and Movie Nights with music, movies and memories from your younger days in the ${Math.floor((year+15)/10)*10}s and ${Math.floor((year+25)/10)*10}s.`),
       h('button',{class:'sp-go',style:'margin-top:36px',onclick:()=>{L.classList.add('out');setTimeout(()=>{L.remove();home();splash()},600)}},'Let’s begin  ›'))}
   step1()}
 
 if(store.get('reportAuto','')!=='1'){store.set('reportAuto','1');const isPad=/iPad/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);if(isPad&&LV_SITE&&!S.reportOn){S.reportOn=true;saveS();statDirty=true}}
+if(store.get('facGardens','')!=='1'){store.set('facGardens','1');if(isDoris()&&!S.facility){S.facility='the-gardens-of-cuyahoga-falls';S.facName='The Gardens of Cuyahoga Falls';saveS()}}
 if(store.get('nameMamaC','')!=='1'){store.set('nameMamaC','1');if(/^doris$/i.test((S.name||'').trim())){S.name='Mama C';saveS()}}
 if(!store.get('settings',null)&&!store.get('setupDone',false)){onboard()}else{home();splash()}
 </script>

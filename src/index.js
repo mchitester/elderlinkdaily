@@ -144,6 +144,7 @@ async function households(env) {
 async function adminPage(env, url) {
   if (!await adminOk(url)) return new Response('Not found', { status: 404 });
   const hs = await households(env);
+  const fq = (await env.VOICE.get('facq', 'json')) || [];
   const a = esc(url.searchParams.get('a'));
   const card = o => {
     const r = o.rep || {}, cfg = r.cfg || {};
@@ -163,7 +164,7 @@ async function adminPage(env, url) {
 h2{margin:0;font-size:1.2rem}.u{color:#888;font-size:.85rem}.pend{background:#fff6dc;padding:8px;border-radius:8px;font-size:.85rem;word-break:break-all}summary{cursor:pointer;font-weight:700;margin:8px 0}
 .f{display:block;margin:8px 0}.f span{display:block;font-size:.85rem;font-weight:600;margin-bottom:2px}.f input,.f select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8cdb4;border-radius:10px;font-size:1rem}
 button{background:#2e6b47;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-size:1rem;font-weight:700;margin-top:8px}</style></head><body>
-<h1>🛠️ Elder Link Admin</h1><p class="u">Every iPad using the app. Changes you send are applied the next time that iPad has the app open.</p>${hs.map(card).join('')}
+<h1>🛠️ Elder Link Admin</h1>${(fq.length?`<section><h2>🗓️ Calendars waiting to be typed in</h2>${fq.map(x=>`<p>${esc(x.f)} · ${esc(x.m)} · <a href="/fac-photo?f=${esc(x.f)}&m=${esc(x.m)}" target="_blank">view photo</a></p>`).join('')}<p class="u">Ask Claude to type these in. Until then, users of that community can view the photo in the app.</p></section>`:'')}<p class="u">Every iPad using the app. Changes you send are applied the next time that iPad has the app open.</p>${hs.map(card).join('')}
 <script>document.querySelectorAll('form').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const set={};
 f.querySelectorAll('input,select').forEach(i=>{const v=i.value.trim();if(i.name==='adminPin'&&v==='-'){set.adminPin='';return}if(v==='')return;const t=i.dataset.type;
  set[i.name]=i.tagName==='SELECT'?v==='true':t==='number'?Number(v):t==='list'?v.split(',').map(x=>x.trim()).filter(Boolean):v});
@@ -187,6 +188,51 @@ async function cfgGet(env, url) {
   if (h !== 'main') { const stored = await env.VOICE.get('hhk:' + h); if (!stored || stored !== await sha(url.searchParams.get('k') || '')) return new Response('{}', { headers: { 'Content-Type': 'application/json' } }); }
   const c = await env.VOICE.get('cfg:' + h);
   return new Response(c || '{}', { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+}
+
+
+/* ---------- communities (facilities) and their activity calendars ---------- */
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+const J = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+async function facList(env) { return (await env.VOICE.get('fac:list', 'json')) || []; }
+async function facRoute(request, env, url) {
+  const p = url.pathname, f = slug(url.searchParams.get('f') || ''), m = (url.searchParams.get('m') || '').replace(/[^0-9-]/g, '').slice(0, 7);
+  if (p === '/fac-list') return J(await facList(env));
+  if (p === '/fac-events') {
+    const ev = await env.VOICE.get(`fac:${f}:${m}`, 'json');
+    const ph = await env.VOICE.get(`facph:${f}:${m}`, 'json');
+    return J({ events: ev ? ev.events : null, photo: !!ph, photoAt: ph && ph.at });
+  }
+  if (p === '/fac-photo' && request.method === 'GET') {
+    const r = await env.VOICE.getWithMetadata(`facimg:${f}:${m}`, 'arrayBuffer');
+    if (!r.value) return new Response('none', { status: 404 });
+    return new Response(r.value, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-cache' } });
+  }
+  // household-authorised writes
+  const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  const admin = await adminOk(url);
+  if (!admin && !await hhCheck(env, hh, url.searchParams.get('hk') || '')) return J({ ok: false }, 403);
+  if (p === '/fac-add' && request.method === 'POST') {
+    const name = (url.searchParams.get('name') || '').trim().slice(0, 60), city = (url.searchParams.get('city') || '').trim().slice(0, 40);
+    if (name.length < 3) return J({ ok: false }, 400);
+    const list = await facList(env); const id = slug(name + (city ? ' ' + city : ''));
+    if (!list.some(x => x.id === id)) { list.push({ id, name, city, by: hh || 'admin', at: Date.now() }); await env.VOICE.put('fac:list', JSON.stringify(list)); }
+    return J({ ok: true, id });
+  }
+  if (p === '/fac-photo' && request.method === 'POST') {
+    if (!/^\d{4}-\d{2}$/.test(m) || !f) return J({ ok: false }, 400);
+    const buf = await request.arrayBuffer(); if (buf.byteLength < 10000 || buf.byteLength > 8e6) return J({ ok: false, why: 'size' }, 400);
+    await env.VOICE.put(`facimg:${f}:${m}`, buf);
+    await env.VOICE.put(`facph:${f}:${m}`, JSON.stringify({ at: Date.now(), by: hh || 'admin' }));
+    const q = (await env.VOICE.get('facq', 'json')) || []; if (!q.some(x => x.f === f && x.m === m)) q.push({ f, m, at: Date.now() }); await env.VOICE.put('facq', JSON.stringify(q));
+    return J({ ok: true });
+  }
+  if (p === '/fac-events-set' && request.method === 'POST' && admin) {
+    const body = JSON.parse(await request.text()); await env.VOICE.put(`fac:${f}:${m}`, JSON.stringify({ events: body.events, at: Date.now() }));
+    const q = ((await env.VOICE.get('facq', 'json')) || []).filter(x => !(x.f === f && x.m === m)); await env.VOICE.put('facq', JSON.stringify(q));
+    return J({ ok: true, n: body.events.length });
+  }
+  return J({ ok: false }, 404);
 }
 
 const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
@@ -248,6 +294,7 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/fac-')) return facRoute(request, env, url);
     if (url.pathname === '/admin') return adminPage(env, url);
     if (url.pathname === '/admin-push' && request.method === 'POST') return adminPush(request, env, url);
     if (url.pathname === '/cfg') return cfgGet(env, url);
