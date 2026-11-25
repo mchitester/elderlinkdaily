@@ -14,9 +14,12 @@ async function tts(request, env, url) {
   if (!okRef) return new Response('forbidden', { status: 403 });
   let text = (url.searchParams.get('t') || '').replace(/\s+/g, ' ').trim();
   if (!text || text.length > 900) return new Response('bad text', { status: 400 });
-  const rec = await env.VOICE.getWithMetadata('rec:' + await sha(norm(text)), 'arrayBuffer');
+  const hhv = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  let voiceId = VOICE_ID;
+  if (hhv) { const v = await env.VOICE.get('hhv:' + hhv, 'json'); if (v && v.id) voiceId = v.id; else return new Response('no custom voice', { status: 404 }); }
+  const rec = voiceId === VOICE_ID ? await env.VOICE.getWithMetadata('rec:' + await sha(norm(text)), 'arrayBuffer') : { value: null };
   if (rec.value) return new Response(rec.value, { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': (rec.metadata && rec.metadata.type) || 'audio/mp4', 'Cache-Control': 'no-cache', 'X-Voice': 'rec', 'Access-Control-Expose-Headers': 'X-Voice' } });
-  const key = VER + ':' + await sha(text);
+  const key = VER + ':' + (voiceId === VOICE_ID ? '' : voiceId + ':') + await sha(text);
   const hit = env.VOICE && await env.VOICE.get(key, 'arrayBuffer');
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'X-Voice', 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-cache', 'X-Voice': 'cache' };
   if (hit) return new Response(hit, { headers });
@@ -27,7 +30,7 @@ async function tts(request, env, url) {
   const used = Number(await env.VOICE.get(day) || 0);
   if (used + text.length > DAILY_CHAR_CAP && url.searchParams.get('k') !== env.WARM_KEY) return new Response('daily cap', { status: 429 });
   const model = 'eleven_multilingual_v2';
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`, {
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.4, similarity_boost: 1.0, style: 0.3, use_speaker_boost: true } })
@@ -67,6 +70,40 @@ async function recGet(env, url) {
   const r = await env.VOICE.getWithMetadata('rec:' + await sha(norm(t)), 'arrayBuffer');
   if (!r.value) return new Response('none', { status: 404 });
   return new Response(r.value, { headers: { 'Content-Type': (r.metadata && r.metadata.type) || 'audio/mp4', 'Cache-Control': 'no-store' } });
+}
+
+
+async function hhCheck(env, hh, hk) {
+  if (!hh || hk.length < 8) return false;
+  const stored = await env.VOICE.get('hhk:' + hh); const h2 = await sha(hk);
+  if (!stored) { await env.VOICE.put('hhk:' + hh, h2); return true; }
+  return stored === h2;
+}
+
+async function voiceNew(request, env, url) {
+  const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  if (!await hhCheck(env, hh, url.searchParams.get('hk') || '')) return new Response('forbidden', { status: 403 });
+  const name = (url.searchParams.get('name') || 'Narrator').slice(0, 40);
+  const apiKey = env.ELEVEN_KEY || await env.VOICE.get('cfg:eleven');
+  const audio = await request.arrayBuffer();
+  if (audio.byteLength < 50000 || audio.byteLength > 20e6) return new Response('Recording too short. Please read for at least a minute.', { status: 400 });
+  const type = request.headers.get('Content-Type') || 'audio/mp4';
+  const fd = new FormData();
+  fd.append('name', `Elder Link – ${name} (${hh})`);
+  fd.append('description', 'Narrator voice for an Elder Link Daily household');
+  fd.append('remove_background_noise', 'true');
+  fd.append('files', new Blob([audio], { type }), type.includes('webm') ? 'sample.webm' : 'sample.m4a');
+  const r = await fetch('https://api.elevenlabs.io/v1/voices/add', { method: 'POST', headers: { 'xi-api-key': apiKey }, body: fd });
+  const txt = await r.text();
+  if (!r.ok) {
+    const why = /permission|missing_permissions|unauthor/i.test(txt) ? 'needs-permission' : /voice_limit|limit/i.test(txt) ? 'no-slots' : 'error';
+    return new Response(JSON.stringify({ ok: false, why, status: r.status, detail: txt.slice(0, 300) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+  }
+  const id = JSON.parse(txt).voice_id;
+  const old = await env.VOICE.get('hhv:' + hh, 'json');
+  await env.VOICE.put('hhv:' + hh, JSON.stringify({ id, name, at: Date.now() }));
+  if (old && old.id && old.id !== id) { try { await fetch('https://api.elevenlabs.io/v1/voices/' + old.id, { method: 'DELETE', headers: { 'xi-api-key': apiKey } }); } catch (e) {} }
+  return new Response(JSON.stringify({ ok: true, name }), { headers: { 'Content-Type': 'application/json' } });
 }
 
 const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
@@ -128,6 +165,7 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/voice-new' && request.method === 'POST') return voiceNew(request, env, url);
     if (url.pathname === '/rec' && request.method === 'POST') return recSave(request, env, url);
     if (url.pathname === '/rec-list') return recList(env, url);
     if (url.pathname === '/rec-get') { if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 }); return recGet(env, url); }
