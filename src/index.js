@@ -17,7 +17,7 @@ async function tts(request, env, url) {
   const hhv = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
   let voiceId = VOICE_ID;
   if (hhv) { const v = await env.VOICE.get('hhv:' + hhv, 'json'); if (v && v.id) voiceId = v.id; else return new Response('no custom voice', { status: 404 }); }
-  const rec = voiceId === VOICE_ID ? await env.VOICE.getWithMetadata('rec:' + await sha(norm(text)), 'arrayBuffer') : { value: null };
+  const rec = await env.VOICE.getWithMetadata((voiceId === VOICE_ID ? 'rec:' : 'rec:' + hhv + ':') + await sha(norm(text)), 'arrayBuffer');
   if (rec.value) return new Response(rec.value, { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': (rec.metadata && rec.metadata.type) || 'audio/mp4', 'Cache-Control': 'no-cache', 'X-Voice': 'rec', 'Access-Control-Expose-Headers': 'X-Voice' } });
   const key = VER + ':' + (voiceId === VOICE_ID ? '' : voiceId + ':') + await sha(text);
   const hit = env.VOICE && await env.VOICE.get(key, 'arrayBuffer');
@@ -46,22 +46,31 @@ async function tts(request, env, url) {
 const LAURIE_HASH = '3389ffb066991f7714f4676370e5615caab1e0a9a5499647f96b507e049adbd0';
 const norm = t => String(t).toLowerCase().replace(/[\u2018\u2019\u201c\u201d'"]/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
 
+async function recAuth(env, url) {
+  const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  const k = url.searchParams.get('k') || '';
+  if (hh) return (await env.VOICE.get('hhk:' + hh)) === await sha(k) ? 'rec:' + hh + ':' : null;
+  return (await sha(k)) === LAURIE_HASH ? 'rec:' : null;
+}
+
 async function recSave(request, env, url) {
-  if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 });
+  const pre = await recAuth(env, url);
+  if (!pre) return new Response('forbidden', { status: 403 });
   const text = url.searchParams.get('t') || '';
   const n = norm(text);
   if (!n) return new Response('bad', { status: 400 });
   const buf = await request.arrayBuffer();
   if (buf.byteLength < 2000 || buf.byteLength > 5e6) return new Response('bad size', { status: 400 });
   const type = request.headers.get('Content-Type') || 'audio/mp4';
-  await env.VOICE.put('rec:' + await sha(n), buf, { metadata: { type, text: text.slice(0, 300), at: Date.now() } });
+  await env.VOICE.put(pre + await sha(n), buf, { metadata: { type, text: text.slice(0, 300), at: Date.now() } });
   return new Response('saved', { headers: { 'Access-Control-Allow-Origin': '*' } });
 }
 
 async function recList(env, url) {
-  if (await sha(url.searchParams.get('k') || '') !== LAURIE_HASH) return new Response('forbidden', { status: 403 });
+  const pre = await recAuth(env, url);
+  if (!pre) return new Response('forbidden', { status: 403 });
   let out = [], cursor;
-  do { const l = await env.VOICE.list({ prefix: 'rec:', cursor }); out = out.concat(l.keys.map(k => k.metadata && k.metadata.text).filter(Boolean)); cursor = l.list_complete ? null : l.cursor; } while (cursor);
+  do { const l = await env.VOICE.list({ prefix: pre, cursor }); out = out.concat(l.keys.filter(k => pre !== 'rec:' || /^rec:[0-9a-f]{64}$/.test(k.name)).map(k => k.metadata && k.metadata.text).filter(Boolean)); cursor = l.list_complete ? null : l.cursor; } while (cursor);
   return new Response(JSON.stringify(out.map(norm)), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 

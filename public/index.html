@@ -538,7 +538,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='8.6',APP_DATE='November 23, 2026';
+const APP_VERSION='8.7',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -581,7 +581,10 @@ function settings(){const body=frame('Settings');const f=(label,val,ph)=>{const 
   iPin.addEventListener('change',()=>{S.adminPin=iPin.value.replace(/\D/g,'').slice(0,8);saveS()});
   const vopts=[['laurie','Laurie (built in)'],['ipad','iPad voice']];if(store.get('customVoice',''))vopts.splice(1,0,['custom',`${store.get('customVoice','')} (your recording)`]);
   if(!S.voiceMode)S.voiceMode=S.lauVoice===false?'ipad':'laurie';
-  const voiceBox=h('div',{},seg('Narrator’s voice','voiceMode',vopts),store.get('household','')?h('div',{class:'field'},h('button',{class:'btn alt',onclick:voiceSetup},'🎙️ Record a new narrator voice'),h('div',{class:'msg small'},'Have a family member or friend read for about 2 minutes. The app learns their voice and uses it for everything it says, along with the narrator name below.')):null);
+  const voiceBox=h('div',{},seg('Narrator’s voice','voiceMode',vopts),store.get('household','')?h('div',{class:'field'},h('button',{class:'btn alt',onclick:voiceSetup},'🎙️ Record a new narrator voice'),h('div',{class:'msg small'},'Have a family member or friend read for about 2 minutes. The app learns their voice and uses it for everything it says, along with the narrator name below.')):null,
+    store.get('customVoice','')?(()=>{const bl=`https://elderlinkdaily.com/record/?h=${store.get('household','')}&k=${encodeURIComponent(store.get('hhKey',''))}&n=${encodeURIComponent(N())}&r=${encodeURIComponent(store.get('customVoice',''))}`;
+      return h('div',{class:'field'},h('label',{},`${store.get('customVoice','')}’s recording booth (optional: they read the app’s lines in their own voice, so it sounds even more like them)`),
+        h('div',{class:'msg small',style:'word-break:break-all;user-select:all'},bl),h('div',{class:'row'},h('button',{class:'btn alt',onclick:()=>{try{navigator.clipboard.writeText(bl);beep('good')}catch(e){}}},'📋 Copy link'),h('a',{class:'btn alt',href:bl,target:'_blank'},'Open it')))})():null);
   const fl=familyLink();const helper=h('div',{class:'card-box'},h('h3',{style:'margin:0 0 8px'},'👪 Family helper'),fPin,voiceBox,
     fl?h('div',{class:'field'},h('label',{},'Private activity report link (bookmark it on your phone)'),h('div',{class:'msg small',style:'word-break:break-all;user-select:all'},fl),
       h('button',{class:'btn alt',onclick:()=>{try{navigator.clipboard.writeText(fl);beep('good')}catch(e){}}},'📋 Copy link')):h('div',{class:'msg small'},'Activity report: ask Marty for the link.'));
