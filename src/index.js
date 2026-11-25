@@ -1,7 +1,7 @@
 // Elder Link Daily worker: static files, Range support for audio, and Laurie's voice (/tts).
 const VOICE_ID = 'Rfr8Cn9daYiYJv4iZLHl';
 const VER = 'v3';
-const DAILY_CHAR_CAP = 4000;
+const DAILY_CHAR_CAP = 8000;
 
 async function sha(s) {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -79,14 +79,28 @@ async function saveReport(request, env) {
   if (txt.length > 20000) return new Response('too big', { status: 413 });
   let d; try { d = JSON.parse(txt) } catch (e) { return new Response('bad', { status: 400 }) }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.day || '')) return new Response('bad day', { status: 400 });
+  const hh = String(d.hh || '').replace(/[^a-z0-9]/g, '').slice(0, 16), hk = String(d.hk || '');
+  delete d.hk;
+  if (hh) {
+    const stored = await env.VOICE.get('hhk:' + hh);
+    const hk2 = await sha(hk);
+    if (!stored) { if (hk.length < 8) return new Response('bad key', { status: 400 }); await env.VOICE.put('hhk:' + hh, hk2); }
+    else if (stored !== hk2) return new Response('forbidden', { status: 403 });
+    await env.VOICE.put('rep:' + hh + ':' + d.day, JSON.stringify(d), { expirationTtl: 180 * 86400 });
+    return new Response('ok');
+  }
   await env.VOICE.put('rep:' + d.day, JSON.stringify(d), { expirationTtl: 180 * 86400 });
   return new Response('ok');
 }
 
 async function familyPage(env, url) {
-  if (await sha(url.searchParams.get('k') || '') !== FAMILY_HASH) return new Response('Not found', { status: 404 });
-  const list = await env.VOICE.list({ prefix: 'rep:' });
-  const days = list.keys.map(k => k.name).sort().reverse().slice(0, 30);
+  const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
+  const k = url.searchParams.get('k') || '';
+  let prefix = 'rep:';
+  if (hh) { const stored = await env.VOICE.get('hhk:' + hh); if (!stored || stored !== await sha(k)) return new Response('Not found', { status: 404 }); prefix = 'rep:' + hh + ':'; }
+  else if (await sha(k) !== FAMILY_HASH) return new Response('Not found', { status: 404 });
+  const list = await env.VOICE.list({ prefix });
+  const days = list.keys.map(k => k.name).filter(n => hh || /^rep:\d{4}-/.test(n)).sort().reverse().slice(0, 30);
   const rows = (await Promise.all(days.map(k => env.VOICE.get(k, 'json')))).filter(Boolean);
   const n = v => v || 0;
   const card = r => {
