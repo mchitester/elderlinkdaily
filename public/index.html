@@ -90,7 +90,7 @@ input{font:inherit;-webkit-user-select:text;user-select:text}
 .pc.red{color:#c62828}
 .pc.blk{color:#1d2433}
 .pc.back{background:var(--accent);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.15) 0 6px,transparent 6px 12px);box-shadow:inset 0 0 0 5px #fff,0 0 0 1.5px #b9b2a5}
-.pc.play{box-shadow:0 0 0 5px var(--gold),0 3px 0 rgba(0,0,0,.12)}
+.pc.play{box-shadow:0 0 0 6px var(--gold),0 0 22px 6px rgba(201,160,60,.75);transform:translateY(-14px);animation:playGlow 1s ease-in-out infinite alternate}@keyframes playGlow{from{box-shadow:0 0 0 5px var(--gold),0 0 10px 2px rgba(201,160,60,.5)}to{box-shadow:0 0 0 7px var(--gold),0 0 26px 8px rgba(201,160,60,.85)}}
 .pc.empty{background:transparent;box-shadow:inset 0 0 0 3px dashed var(--line);border:3px dashed #cfc3ae}
 .scols{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;max-width:960px;margin:8px auto}
 .scol{position:relative}
@@ -537,7 +537,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='8.2',APP_DATE='November 23, 2026';
+const APP_VERSION='8.3',APP_DATE='November 23, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -1483,15 +1483,18 @@ function crazy(){const body=frame('Crazy Eights',{lvKey:'c8',onLevel:crazy});con
   function render(){const w=cw();oppEl.innerHTML='';oppEl.append(h('div',{class:'msg small',style:'margin:2px'},`${opp} has ${cp.length} card${cp.length===1?'':'s'}`),h('div',{class:'opp'},cp.map(()=>cardEl(null,Math.round(w*.45),{back:true}))));
     mid.innerHTML='';mid.append(h('div',{class:'pile'},
       h('div',{style:'text-align:center'},cardEl(null,w*1.1,{back:true,onclick:drawMine}),h('div',{class:'msg small',style:'margin:4px'},'Tap to draw')),
-      h('div',{style:'text-align:center'},cardEl(top(),w*1.1),h('div',{style:'margin-top:6px'},h('span',{class:'pill',style:`color:${suit===1||suit===2?'#c62828':'#1d2433'};font-weight:700`},`Match: ${SU[suit]} ${SUN[suit]} or a ${RK[top().r]}`)))));
-    me.sort((a,b)=>a.s-b.s||a.r-b.r);handEl.innerHTML='';me.forEach(c=>handEl.append(cardEl(c,w,{play:turn==='me'&&S.help&&ok(c),onclick:()=>playMine(c)})))}
+      h('div',{style:'text-align:center'},cardEl(top(),w*1.1),h('div',{style:'margin-top:6px'},h('span',{class:'pill',style:`color:${suit===1||suit===2?'#c62828':'#1d2433'};font-weight:700`},`Match: ${SU[suit]} ${SUN[suit]} or a ${RK[top().r]} (any 8 is wild)`)))));
+    me.sort((a,b)=>a.s-b.s||a.r-b.r);handEl.innerHTML='';me.forEach(c=>handEl.append(cardEl(c,w,{play:turn==='me'&&(S.help||hintOn)&&ok(c),onclick:()=>playMine(c)})))}
+  let hintOn=false,hintT=null;
   function say(s){msg.textContent=s}
   function playMine(c){if(turn!=='me'||over)return;if(!ok(c)){beep('soft');say(`That one doesn't match. You need a ${SUN[suit].slice(0,-1).toLowerCase()} or a ${RK[top().r]}.`);return}
     me.splice(me.indexOf(c),1);pile.push(c);beep('tap');
     if(c.r===8&&me.length){turn='pick';render();const ov=modal('You played an 8!','Pick the new suit:',[],h('div',{class:'suitpick'},SU.map((s,i)=>h('button',{style:`color:${i===1||i===2?'#c62828':'#1d2433'}`,onclick:()=>{ov.remove();suit=i;say(`You picked ${SUN[i]}.`);after()}},s))));return}
     suit=c.s;say(`You played ${cardName(c)}.`);after()}
   function after(){render();if(!me.length){over=true;later(()=>winModal(`You played all your cards before ${opp}!`,crazy),600);return}turn='cp';render();later(cpTurn,1300)}
-  function drawMine(){if(turn!=='me'||over)return;if(me.some(ok)){say(S.help?'You have a card you can play. It is outlined in gold!':'You have a card you can play!');return}
+  function drawMine(){if(turn!=='me'||over)return;if(me.some(ok)){const p=me.filter(ok);const wild=p.every(c=>c.r===8);
+      say(p.length===1?`You can play your ${cardName(p[0])}${p[0].r===8?'. 8s are wild!':'!'} It’s glowing gold.`:`You can play ${p.map(cardName).join(' or ')}${wild?'. 8s are wild!':'.'} They’re glowing gold.`);
+      hintOn=true;render();clearTimeout(hintT);hintT=setTimeout(()=>{hintOn=false;if(!over)render()},6000);return}
     if(!refill()){say('No cards left to draw. Passing.');turn='cp';later(cpTurn,1200);return}
     const c=deck.pop();me.push(c);drew++;beep('tap');render();
     if(ok(c)){say(`You drew ${cardName(c)}. You can play it!`);drew=0}else if(drew>=3){drew=0;say(`No luck. It's ${opp}'s turn.`);turn='cp';render();later(cpTurn,1500)}else say(`You drew ${cardName(c)}. Tap to draw again.`)}
