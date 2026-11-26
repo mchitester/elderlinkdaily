@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Send the Activity Calendar</title>
+<style>
+:root{--ink:#1b2a4a;--gold:#b8892f;--bg:#f7f2e8;--card:#fffdf8;--green:#2e6b47}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:620px;margin:0 auto;padding:20px 16px 50px}
+h1{font-family:Georgia,serif;font-size:1.6rem;margin:4px 0;text-align:center}.sub{text-align:center;color:#666;margin-bottom:16px}
+.card{background:var(--card);border-radius:20px;box-shadow:0 0 0 1px #e6dcc6,0 8px 22px rgba(27,42,74,.07);padding:18px;margin:14px 0}
+h2{font-size:1.1rem;margin:0 0 10px}ol{margin:0;padding-left:22px;line-height:1.6}
+.big{display:block;width:100%;border:0;border-radius:18px;font:inherit;font-size:1.3rem;font-weight:700;padding:18px;margin:10px 0;cursor:pointer}
+.cam{background:var(--ink);color:#fff}.send{background:var(--green);color:#fff}.alt{background:#fff;color:var(--ink);box-shadow:0 0 0 2px #d8cdb4}
+.months{display:flex;gap:10px}.months label{flex:1;display:flex;gap:8px;align-items:center;justify-content:center;padding:14px;border-radius:14px;background:#fff;box-shadow:0 0 0 2px #d8cdb4;font-weight:700}
+.months input:checked+span{color:var(--green)}img{width:100%;border-radius:14px;margin-top:10px}.msg{text-align:center;font-weight:600;min-height:1.4em;margin-top:8px}.hidden{display:none}
+</style></head><body><div class="wrap">
+<h1>🗓️ Send the Activity Calendar</h1><div class="sub" id="who">Loading…</div>
+<div class="card"><h2>📸 Tips for a clean photo</h2><ol>
+<li>Lay the calendar <b>flat</b> on a table and smooth out the folds.</li>
+<li>Stand <b>right above it</b> and hold the phone flat and level, not at an angle.</li>
+<li>Get the <b>whole page</b> in the picture, with a little table showing around the edges.</li>
+<li>Use <b>good light</b>, like near a window. Turn off the flash and keep your shadow and fingers off the page.</li>
+<li>Check that the small print is <b>sharp</b> when you zoom in. If it’s blurry, take it again.</li></ol></div>
+<div class="card" id="main"><h2>Which month is it?</h2><div class="months" id="months"></div>
+<input type="file" id="file" accept="image/*" capture="environment" class="hidden">
+<button class="big cam" id="camBtn">📷 Take the photo</button>
+<img id="prev" class="hidden" alt=""><div id="after" class="hidden"><button class="big send" id="sendBtn">✔ Send it</button><button class="big alt" id="againBtn">↺ Take it again</button></div>
+<div class="msg" id="msg"></div></div>
+<div class="card"><h2>🔔 Remind me each month</h2><p style="margin:0 0 8px">Add a reminder to your phone’s calendar for the 25th of every month, with a link back to this page.</p>
+<button class="big alt" id="icsBtn">➕ Add monthly reminder</button></div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search),F=(Q.get('f')||'').replace(/[^a-z0-9-]/g,''),U=Q.get('u')||'';let blob=null,name='';
+const $=id=>document.getElementById(id);
+const ym=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),mn=d=>d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+const now=new Date(),next=new Date(now.getFullYear(),now.getMonth()+1,1);
+const pickNext=now.getDate()>=18;
+$('months').innerHTML=[[now,!pickNext],[next,pickNext]].map(([d,c])=>`<label><input type="radio" name="m" value="${ym(d)}"${c?' checked':''}><span>${mn(d)}</span></label>`).join('');
+fetch(`/fac-info?f=${F}&u=${encodeURIComponent(U)}`).then(r=>r.json()).then(d=>{if(!d.ok)throw 0;name=d.name;$('who').textContent='for '+d.name+' · Elder Link Daily';document.title='Send the '+d.name+' Calendar'}).catch(()=>{document.querySelector('.wrap').innerHTML='<h1>This link isn’t complete.</h1><p class="sub">Please use the full link you were sent.</p>'});
+$('camBtn').onclick=$('againBtn').onclick=()=>$('file').click();
+$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;$('msg').textContent='Getting it ready…';
+  const img=await createImageBitmap(f);const sc=Math.min(1,2400/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.85));$('prev').src=URL.createObjectURL(blob);$('prev').classList.remove('hidden');$('after').classList.remove('hidden');$('camBtn').classList.add('hidden');
+  $('msg').textContent='Zoom in to check the small print is sharp, then tap Send.'};
+$('sendBtn').onclick=async()=>{if(!blob)return;const m=document.querySelector('input[name=m]:checked').value;$('sendBtn').disabled=true;$('msg').textContent='Sending…';
+  try{const r=await fetch(`/fac-photo?f=${F}&m=${m}&u=${encodeURIComponent(U)}`,{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob}).then(r=>r.json());if(!r.ok)throw 0;
+    $('main').innerHTML='<h2 style="text-align:center">✔ Thank you!</h2><p style="text-align:center">The calendar is in. Everyone using Elder Link Daily at '+name+' can see it now, and the reminders will be set up shortly.</p>'}
+  catch(e){$('msg').textContent='That didn’t go through. Check the internet and tap Send again.';$('sendBtn').disabled=false}};
+$('icsBtn').onclick=()=>{const link=location.href,d=new Date(now.getFullYear(),now.getMonth(),25,10,0),p=n=>String(n).padStart(2,'0');
+  const dt=`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}T100000`;
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Elder Link Daily//EN','BEGIN:VEVENT','UID:eld-cal-'+F+'@elderlinkdaily.com','DTSTAMP:'+dt,'DTSTART:'+dt,'DTEND:'+dt.replace('T100000','T101500'),
+    'RRULE:FREQ=MONTHLY;BYMONTHDAY=25','SUMMARY:Send '+(name||'the')+' activity calendar to Elder Link','DESCRIPTION:Take a photo of next month\'s activity calendar: '+link,'URL:'+link,
+    'BEGIN:VALARM','TRIGGER:PT0M','ACTION:DISPLAY','DESCRIPTION:Send the activity calendar','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='calendar-reminder.ics';document.body.append(a);a.click();a.remove()};
+</script></body></html>

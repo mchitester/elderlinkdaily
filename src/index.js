@@ -208,10 +208,13 @@ async function facRoute(request, env, url) {
     if (!r.value) return new Response('none', { status: 404 });
     return new Response(r.value, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-cache' } });
   }
-  // household-authorised writes
+  // household-, upload-link- or admin-authorised writes
   const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
   const admin = await adminOk(url);
-  if (!admin && !await hhCheck(env, hh, url.searchParams.get('hk') || '')) return J({ ok: false }, 403);
+  if (p === '/fac-ukey' && admin) { await env.VOICE.put('facuk:' + f, await sha(url.searchParams.get('u') || '')); return J({ ok: true }); }
+  if (p === '/fac-info') { const uk = await env.VOICE.get('facuk:' + f); if (!uk || uk !== await sha(url.searchParams.get('u') || '')) return J({ ok: false }, 403); const fl = (await facList(env)).find(x => x.id === f); return J({ ok: true, name: fl ? fl.name : f }); }
+  const upOk = p === '/fac-photo' && f && (await env.VOICE.get('facuk:' + f)) === await sha(url.searchParams.get('u') || 'x');
+  if (!admin && !upOk && !await hhCheck(env, hh, url.searchParams.get('hk') || '')) return J({ ok: false }, 403);
   if (p === '/fac-add' && request.method === 'POST') {
     const name = (url.searchParams.get('name') || '').trim().slice(0, 60), city = (url.searchParams.get('city') || '').trim().slice(0, 40);
     if (name.length < 3) return J({ ok: false }, 400);
@@ -223,7 +226,7 @@ async function facRoute(request, env, url) {
     if (!/^\d{4}-\d{2}$/.test(m) || !f) return J({ ok: false }, 400);
     const buf = await request.arrayBuffer(); if (buf.byteLength < 10000 || buf.byteLength > 8e6) return J({ ok: false, why: 'size' }, 400);
     await env.VOICE.put(`facimg:${f}:${m}`, buf);
-    await env.VOICE.put(`facph:${f}:${m}`, JSON.stringify({ at: Date.now(), by: hh || 'admin' }));
+    await env.VOICE.put(`facph:${f}:${m}`, JSON.stringify({ at: Date.now(), by: hh || (upOk ? 'upload-link' : 'admin') }));
     const q = (await env.VOICE.get('facq', 'json')) || []; if (!q.some(x => x.f === f && x.m === m)) q.push({ f, m, at: Date.now() }); await env.VOICE.put('facq', JSON.stringify(q));
     return J({ ok: true });
   }
