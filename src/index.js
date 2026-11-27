@@ -10,7 +10,10 @@ async function sha(s) {
 
 async function tts(request, env, url) {
   const ref = request.headers.get('Referer') || request.headers.get('Origin') || '';
-  const okRef = /^https:\/\/((www\.)?elderlinkdaily\.com|[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev|[a-z0-9.-]*claudeusercontent\.com|claude\.ai)(\/|$)/.test(ref) || url.searchParams.get('k') === env.WARM_KEY && env.WARM_KEY;
+  const okRef = /^https:\/\/((www\.)?elderlinkdaily\.com|[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev|[a-z0-9.-]*claudeusercontent\.com|claude\.ai)(\/|$)/.test(ref) || url.searchParams.get('k') === env.WARM_KEY && env.WARM_KEY
+    // Some iPads send no Referer at all; accept the app's own same-site requests too.
+    || /^same-(origin|site)$/.test(request.headers.get('Sec-Fetch-Site') || '')
+    || request.headers.get('X-Eld') === '1';
   if (!okRef) return new Response('forbidden', { status: 403 });
   let text = (url.searchParams.get('t') || '').replace(/\s+/g, ' ').trim();
   if (!text || text.length > 900) return new Response('bad text', { status: 400 });

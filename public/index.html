@@ -548,7 +548,7 @@ const GAMES=[
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
 ];
-const APP_VERSION='9.3',APP_DATE='November 27, 2026';
+const APP_VERSION='9.4',APP_DATE='November 27, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -1185,7 +1185,7 @@ function voiceSay(t,opt){opt=opt||{};const txt=clean(t);if(!txt){opt.onend&&opt.
   if(opt.force)lvFail=0;if(!(opt.force?LV_OK:lvUse())){synthSpeak(txt,opt.rate,opt.onend);opt.onstat&&opt.onstat('ipad');return}
   const id=++lvSeq;lvBusy=true;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),8000);
   const fail=why=>{clearTimeout(to);if(id!==lvSeq)return;lvBusy=false;lvLast='fail:'+why;if(why!=='blocked')lvFail++;synthSpeak(txt,opt.rate,opt.onend);opt.onstat&&opt.onstat('fail:'+why)};
-  let isRec=false;fetch(TTS_URL+'?t='+encodeURIComponent(txt)+ttsQ(),{signal:ac.signal,cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('http '+r.status);isRec=r.headers.get('X-Voice')==='rec';return r.blob()})
+  let isRec=false;fetch(TTS_URL+'?t='+encodeURIComponent(txt)+ttsQ(),{signal:ac.signal,cache:'no-cache',headers:LV_SITE?{'X-Eld':'1'}:{}}).then(r=>{if(!r.ok)throw new Error('http '+r.status);isRec=r.headers.get('X-Voice')==='rec';return r.blob()})
    .then(bl=>{clearTimeout(to);if(id!==lvSeq)return;if(lvURL)URL.revokeObjectURL(lvURL);lvURL=URL.createObjectURL(bl);const a=lvEl();
      a.onended=()=>{if(id!==lvSeq)return;lvBusy=false;opt.onend&&opt.onend()};a.onerror=()=>fail('decode');a.src=lvURL;try{a.preservesPitch=true;a.webkitPreservesPitch=true;a.mozPreservesPitch=true}catch(e){}a.defaultPlaybackRate=a.playbackRate=isRec?1:+(S.lauSpeed||1.12);
      const pr=a.play();if(pr&&pr.then)pr.then(()=>{lvFail=0;lvLast=isRec?'laurie-real':'laurie';lvUnlocked=true;opt.onstat&&opt.onstat(lvLast)}).catch(()=>fail('blocked'));else lvLast='laurie'})
