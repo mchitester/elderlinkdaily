@@ -243,7 +243,7 @@ async function facRoute(request, env, url) {
 
 
 /* ---------- local news & local history by ZIP ---------- */
-const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall/i;
+const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|data center|lawsuit|deadly|tragic|grief|mourn/i;
 const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
 async function zipPlace(env, zip) {
   const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
@@ -254,16 +254,16 @@ async function zipPlace(env, zip) {
 }
 const unesc = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, '');
 async function localNews(env, pl) {
-  const k = 'lnews:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
-  const q = encodeURIComponent(`"${pl.city}" ${pl.st} when:21d`);
-  const r = await fetch(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: UA });
-  const x = r.ok ? await r.text() : '';
+  const k = 'lnews2:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const qs = [`"${pl.city}" (festival OR holiday OR celebrates OR parade OR library OR park OR opens OR community OR volunteers OR concert OR anniversary) when:30d`, `"${pl.city}" ${pl.st} when:30d -obituary`];
+  let x = '';
+  for (const q of qs) { try { const r = await fetch(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`, { headers: UA }); if (r.ok) x += await r.text(); } catch (e) {} }
   const items = [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
     const it = m[1], g = re => { const mm = it.match(re); return mm ? unesc(mm[1]).trim() : '' };
     let t = g(/<title>([\s\S]*?)<\/title>/), src = g(/<source[^>]*>([\s\S]*?)<\/source>/);
     if (src && t.endsWith(' - ' + src)) t = t.slice(0, -(src.length + 3));
     return { t, src, date: g(/<pubDate>([\s\S]*?)<\/pubDate>/) };
-  }).filter(n => n.t && !BAD.test(n.t) && !/\.gov|IQAir|Tribute|Funeral/i.test(n.src));
+  }).filter(n => n.t && !BAD.test(n.t) && !/\.gov|IQAir|Tribute|Funeral|MaxPreps|Legacy|Wisevoter/i.test(n.src)).map(n => ({ ...n, t: n.t.replace(/\s*\((photos|video|watch)\)/ig, '') }));
   const seen = new Set(), out = [];
   for (const n of items.sort((a, b) => new Date(b.date) - new Date(a.date))) { const key = n.t.toLowerCase().slice(0, 40); if (seen.has(key)) continue; seen.add(key); out.push(n); if (out.length >= 10) break; }
   await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 3 * 3600 }); return out;
@@ -271,7 +271,7 @@ async function localNews(env, pl) {
 function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
   for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
 async function localHistory(env, pl) {
-  const k = 'lhist2:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lhist3:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const out = [];
   try {
     const title = `${pl.city}, ${pl.state}`;
@@ -283,7 +283,7 @@ async function localHistory(env, pl) {
   } catch (e) {}
   try {
     const g = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pl.lat}|${pl.lon}&gsradius=10000&gslimit=50&format=json`, { headers: UA }).then(r => r.json());
-    const skip = /school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
+    const skip = /hospital|disaster|wreck|foundation|learning center|mall$|prison|jail|school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
     const titles = g.query.geosearch.map(x => x.title).filter(t => !skip.test(t) && !t.startsWith(pl.city + ',')).slice(0, 14);
     for (const t of titles) {
       try { const s = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
