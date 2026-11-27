@@ -299,6 +299,7 @@ async function localRoute(env, url) {
   if (zip.length !== 5) return J({ ok: false }, 400);
   const pl = await zipPlace(env, zip); if (!pl) return J({ ok: false, why: 'zip' }, 404);
   const want = url.searchParams.get('w') || 'all';
+  if (want === 'dbg') { const r = await fetch('https://news.google.com/rss/search?q=%22Cuyahoga+Falls%22&hl=en-US&gl=US&ceid=US:en', { headers: UA }); const t = await r.text(); return J({ st: r.status, len: t.length, head: t.slice(0, 300), loc: r.headers.get('location') }); }
   const [news, hist] = await Promise.all([want !== 'hist' ? localNews(env, pl) : [], want !== 'news' ? localHistory(env, pl) : []]);
   return J({ ok: true, place: pl, news, history: hist });
 }
