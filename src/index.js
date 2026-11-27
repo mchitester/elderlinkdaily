@@ -241,6 +241,68 @@ async function facRoute(request, env, url) {
   return J({ ok: false }, 404);
 }
 
+
+/* ---------- local news & local history by ZIP ---------- */
+const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall/i;
+const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
+async function zipPlace(env, zip) {
+  const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const r = await fetch('https://api.zippopotam.us/us/' + zip); if (!r.ok) return null;
+  const d = await r.json(); const p = d.places && d.places[0]; if (!p) return null;
+  const o = { zip, city: p['place name'], state: p.state, st: p['state abbreviation'], lat: +p.latitude, lon: +p.longitude };
+  await env.VOICE.put(k, JSON.stringify(o)); return o;
+}
+const unesc = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, '');
+async function localNews(env, pl) {
+  const k = 'lnews:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const q = encodeURIComponent(`"${pl.city}" ${pl.st} when:21d`);
+  const r = await fetch(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: UA });
+  const x = r.ok ? await r.text() : '';
+  const items = [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
+    const it = m[1], g = re => { const mm = it.match(re); return mm ? unesc(mm[1]).trim() : '' };
+    let t = g(/<title>([\s\S]*?)<\/title>/), src = g(/<source[^>]*>([\s\S]*?)<\/source>/);
+    if (src && t.endsWith(' - ' + src)) t = t.slice(0, -(src.length + 3));
+    return { t, src, date: g(/<pubDate>([\s\S]*?)<\/pubDate>/) };
+  }).filter(n => n.t && !BAD.test(n.t) && !/\.gov|IQAir|Tribute|Funeral/i.test(n.src));
+  const seen = new Set(), out = [];
+  for (const n of items.sort((a, b) => new Date(b.date) - new Date(a.date))) { const key = n.t.toLowerCase().slice(0, 40); if (seen.has(key)) continue; seen.add(key); out.push(n); if (out.length >= 10) break; }
+  await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 3 * 3600 }); return out;
+}
+function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
+  for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
+async function localHistory(env, pl) {
+  const k = 'lhist2:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const out = [];
+  try {
+    const title = `${pl.city}, ${pl.state}`;
+    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&format=json&titles=${encodeURIComponent(title)}`, { headers: UA });
+    const d = await r.json(); const pg = Object.values(d.query.pages)[0]; const ex = pg.extract || '';
+    const secs = ex.split(/\n== /); const hist = secs.find(s => /^History/.test(s));
+    if (hist) { const body = hist.replace(/^History ==\n?/, '').replace(/\n=== ([^=]+) ===/g, '\n').trim();
+      chunks(body, 520).slice(0, 14).forEach((b, i) => out.push({ t: i === 0 ? `How ${pl.city} began` : `${pl.city} long ago, part ${i + 1}`, b, kind: 'history' })); }
+  } catch (e) {}
+  try {
+    const g = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pl.lat}|${pl.lon}&gsradius=10000&gslimit=50&format=json`, { headers: UA }).then(r => r.json());
+    const skip = /school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
+    const titles = g.query.geosearch.map(x => x.title).filter(t => !skip.test(t) && !t.startsWith(pl.city + ',')).slice(0, 14);
+    for (const t of titles) {
+      try { const s = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
+        if (s.extract && s.extract.length > 120 && !BAD.test(s.extract.slice(0, 200))) out.push({ t: `Did you know? ${s.title}`, b: s.extract.slice(0, 600), kind: 'place' }); } catch (e) {}
+      if (out.filter(o => o.kind === 'place').length >= 10) break;
+    }
+  } catch (e) {}
+  if (out.length) await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 30 * 86400 });
+  return out;
+}
+async function localRoute(env, url) {
+  const zip = (url.searchParams.get('zip') || '').replace(/\D/g, '').slice(0, 5);
+  if (zip.length !== 5) return J({ ok: false }, 400);
+  const pl = await zipPlace(env, zip); if (!pl) return J({ ok: false, why: 'zip' }, 404);
+  const want = url.searchParams.get('w') || 'all';
+  const [news, hist] = await Promise.all([want !== 'hist' ? localNews(env, pl) : [], want !== 'news' ? localHistory(env, pl) : []]);
+  return J({ ok: true, place: pl, news, history: hist });
+}
+
 const FAMILY_HASH = 'a0fd6079e0d6ff651d9b86ba60fe7988f5b4842d9b302f10913a15903b567c5d';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -300,6 +362,7 @@ ${rows.length ? rows.map(card).join('') : '<section>Nothing yet. On her iPad, op
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/local') return localRoute(env, url);
     if (url.pathname === '/face') {
       const hh = (url.searchParams.get('h') || '').replace(/[^a-z0-9]/g, '');
       if (request.method === 'POST') {
