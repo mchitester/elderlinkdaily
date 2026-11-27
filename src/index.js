@@ -271,7 +271,7 @@ async function localNews(env, pl) {
 function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
   for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
 async function localHistory(env, pl) {
-  const k = 'lhist6:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lhist7:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const out = [];
   try {
     const title = `${pl.city}, ${pl.state}`;
@@ -298,7 +298,7 @@ async function localHistory(env, pl) {
     let n = 0;
     for (const x of g.query.search) { if (n >= 8) break; if (/^List of|season|\(film\)|\(TV|\(album|\(song|\(novel|episode|County|, Ohio$/i.test(x.title) || /kidnap|abduct|abuse|rape|sexual|child/i.test(x.title)) continue;
       try { const s2 = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(x.title.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
-        const ex = s2.extract || ''; if (ex.length < 150 || /rape|sexual|molest|abuse|child|kidnap|abduct/i.test(ex) || !ex.includes(pl.city) || have.has(s2.title)) continue;
+        const ex = s2.extract || ''; if (ex.length < 150 || /rape|sexual|molest|abuse|child|kidnap|abduct/i.test(ex) || !ex.includes(pl.city) || !/murder|mob\b|mobster|gang|robber|heist|bootleg|detective|crime|criminal|killed|convicted|stole|theft|prohibition|racketeer|outlaw|bandit|swindl|fraud/i.test(ex) || have.has(s2.title)) continue;
         out.push({ t: `True crime: ${s2.title}`, b: ex.slice(0, 700), kind: 'crime' }); n++; } catch (e) {} }
   } catch (e) {}
   if (out.length) await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 30 * 86400 });
