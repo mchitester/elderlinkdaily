@@ -243,7 +243,7 @@ async function facRoute(request, env, url) {
 
 
 /* ---------- local news & local history by ZIP ---------- */
-const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|data center|lawsuit|deadly|tragic|grief|mourn/i;
+const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|grief|mourn/i;
 const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
 async function zipPlace(env, zip) {
   const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
@@ -253,20 +253,20 @@ async function zipPlace(env, zip) {
   await env.VOICE.put(k, JSON.stringify(o)); return o;
 }
 const unesc = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, '');
+const SPAM = /advisor|homeowners|zip code|real estate|for sale|lawyer|attorney|dentist|plumber|roofing|insurance|mortgage|top \d+|best .* in |near me|jobs? |hiring|apartments|almanac|whooping/i;
 async function localNews(env, pl) {
-  const k = 'lnews2:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
-  const qs = [`"${pl.city}" (festival OR holiday OR celebrates OR parade OR library OR park OR opens OR community OR volunteers OR concert OR anniversary) when:30d`, `"${pl.city}" ${pl.st} when:30d -obituary`];
-  let x = '';
-  for (const q of qs) { try { const r = await fetch(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`, { headers: UA }); if (r.ok) x += await r.text(); } catch (e) {} }
-  const items = [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
-    const it = m[1], g = re => { const mm = it.match(re); return mm ? unesc(mm[1]).trim() : '' };
-    let t = g(/<title>([\s\S]*?)<\/title>/), src = g(/<source[^>]*>([\s\S]*?)<\/source>/);
-    if (src && t.endsWith(' - ' + src)) t = t.slice(0, -(src.length + 3));
-    return { t, src, date: g(/<pubDate>([\s\S]*?)<\/pubDate>/) };
-  }).filter(n => n.t && !BAD.test(n.t) && !/\.gov|IQAir|Tribute|Funeral|MaxPreps|Legacy|Wisevoter/i.test(n.src)).map(n => ({ ...n, t: n.t.replace(/\s*\((photos|video|watch)\)/ig, '') }));
+  const k = 'lnews3:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const qs = [`"${pl.city}" ${pl.st}`, `"${pl.city}" holiday OR festival OR parade OR concert`, `"${pl.city}" library OR park OR community OR volunteers OR opens`];
+  let items = [];
+  for (const q of qs) { try { const r = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=en-us&cc=us`, { headers: UA }); if (!r.ok) continue; const x = await r.text();
+    for (const m of x.matchAll(/<item>([\s\S]*?)<\/item>/g)) { const it = m[1], g = re => { const mm = it.match(re); return mm ? unesc(mm[1]).trim() : '' };
+      items.push({ t: g(/<title>([\s\S]*?)<\/title>/), b: g(/<description>([\s\S]*?)<\/description>/).slice(0, 400), src: g(/<News:Source>([\s\S]*?)<\/News:Source>/), date: g(/<pubDate>([\s\S]*?)<\/pubDate>/) }); } } catch (e) {} }
+  const cut = Date.now() - 45 * 86400000;
+  items = items.filter(n => n.t && n.t.toLowerCase().includes(pl.city.toLowerCase()) && !BAD.test(n.t + ' ' + n.b.slice(0, 160)) && !SPAM.test(n.t) && (!n.date || new Date(n.date) > cut))
+    .map(n => ({ ...n, t: n.t.replace(/\s*\((photos|video|watch)\)/ig, '').replace(/\.?\s*Here'?’?s (why|when|what|how).*$/i, '') }));
   const seen = new Set(), out = [];
-  for (const n of items.sort((a, b) => new Date(b.date) - new Date(a.date))) { const key = n.t.toLowerCase().slice(0, 40); if (seen.has(key)) continue; seen.add(key); out.push(n); if (out.length >= 10) break; }
-  await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 3 * 3600 }); return out;
+  for (const n of items.sort((a, b) => new Date(b.date) - new Date(a.date))) { const key = n.t.toLowerCase().replace(/[^a-z]/g, '').slice(0, 30); if (seen.has(key)) continue; seen.add(key); out.push(n); if (out.length >= 10) break; }
+  if (out.length) await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 3 * 3600 }); return out;
 }
 function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
   for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
@@ -299,7 +299,6 @@ async function localRoute(env, url) {
   if (zip.length !== 5) return J({ ok: false }, 400);
   const pl = await zipPlace(env, zip); if (!pl) return J({ ok: false, why: 'zip' }, 404);
   const want = url.searchParams.get('w') || 'all';
-  if (want === 'dbg') { const r = await fetch('https://www.bing.com/news/search?q=%22Cuyahoga+Falls%22&format=rss', { headers: UA }); const t = await r.text(); return J({ st: r.status, len: t.length, head: t.slice(0, 300), loc: r.headers.get('location') }); }
   const [news, hist] = await Promise.all([want !== 'hist' ? localNews(env, pl) : [], want !== 'news' ? localHistory(env, pl) : []]);
   return J({ ok: true, place: pl, news, history: hist });
 }
