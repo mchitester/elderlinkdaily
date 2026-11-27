@@ -243,7 +243,7 @@ async function facRoute(request, env, url) {
 
 
 /* ---------- local news & local history by ZIP ---------- */
-const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|grief|mourn|fbi|raid|searched|surgery|cosmetic|botox|lawmaker|congress|senator|governor|trump|democrat|republican|campaign|protest|immigra|ice agents|deport|strike|tariff/i;
+const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|kidnap|abduct|hostage|captiv|massacre|riot|grief|mourn|fbi|raid|searched|surgery|cosmetic|botox|lawmaker|congress|senator|governor|trump|democrat|republican|campaign|protest|immigra|ice agents|deport|strike|tariff/i;
 const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
 async function zipPlace(env, zip) {
   const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
@@ -271,7 +271,7 @@ async function localNews(env, pl) {
 function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
   for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
 async function localHistory(env, pl) {
-  const k = 'lhist4:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lhist5:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const out = [];
   try {
     const title = `${pl.city}, ${pl.state}`;
@@ -283,11 +283,11 @@ async function localHistory(env, pl) {
   } catch (e) {}
   try {
     const g = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pl.lat}|${pl.lon}&gsradius=10000&gslimit=50&format=json`, { headers: UA }).then(r => r.json());
-    const skip = /health system|metrohealth|shopping center|commons$|steelyard|hospital|disaster|wreck|foundation|learning center|mall$|prison|jail|school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
+    const skip = /kidnap|abduct|hostage|massacre|riot|murder|killing|shooting|bombing|fire of|flood of|explosion|crash|disaster|scandal|trial|case$|health system|metrohealth|shopping center|commons$|steelyard|hospital|disaster|wreck|foundation|learning center|mall$|prison|jail|school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
     const titles = g.query.geosearch.map(x => x.title).filter(t => !skip.test(t) && !t.startsWith(pl.city + ',')).slice(0, 14);
     for (const t of titles) {
       try { const s = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
-        if (s.extract && s.extract.length > 120 && !BAD.test(s.extract.slice(0, 200))) out.push({ t: `Did you know? ${s.title}`, b: s.extract.slice(0, 600), kind: 'place' }); } catch (e) {}
+        if (s.extract && s.extract.length > 120 && !BAD.test(s.title + ' ' + s.extract.slice(0, 300))) out.push({ t: `Did you know? ${s.title}`, b: s.extract.slice(0, 600), kind: 'place' }); } catch (e) {}
       if (out.filter(o => o.kind === 'place').length >= 10) break;
     }
   } catch (e) {}
