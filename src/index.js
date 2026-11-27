@@ -243,7 +243,7 @@ async function facRoute(request, env, url) {
 
 
 /* ---------- local news & local history by ZIP ---------- */
-const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|grief|mourn/i;
+const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|grief|mourn|fbi|raid|searched|surgery|cosmetic|botox|lawmaker|congress|senator|governor|trump|democrat|republican|campaign|protest|immigra|ice agents|deport|strike|tariff/i;
 const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
 async function zipPlace(env, zip) {
   const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
@@ -255,14 +255,14 @@ async function zipPlace(env, zip) {
 const unesc = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, '');
 const SPAM = /advisor|homeowners|zip code|real estate|for sale|lawyer|attorney|dentist|plumber|roofing|insurance|mortgage|top \d+|best .* in |near me|jobs? |hiring|apartments|almanac|whooping/i;
 async function localNews(env, pl) {
-  const k = 'lnews3:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lnews4:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const qs = [`"${pl.city}" ${pl.st}`, `"${pl.city}" holiday OR festival OR parade OR concert`, `"${pl.city}" library OR park OR community OR volunteers OR opens`];
   let items = [];
   for (const q of qs) { try { const r = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=en-us&cc=us`, { headers: UA }); if (!r.ok) continue; const x = await r.text();
     for (const m of x.matchAll(/<item>([\s\S]*?)<\/item>/g)) { const it = m[1], g = re => { const mm = it.match(re); return mm ? unesc(mm[1]).trim() : '' };
       items.push({ t: g(/<title>([\s\S]*?)<\/title>/), b: g(/<description>([\s\S]*?)<\/description>/).slice(0, 400), src: g(/<News:Source>([\s\S]*?)<\/News:Source>/), date: g(/<pubDate>([\s\S]*?)<\/pubDate>/) }); } } catch (e) {} }
   const cut = Date.now() - 45 * 86400000;
-  items = items.filter(n => n.t && n.t.toLowerCase().includes(pl.city.toLowerCase()) && !BAD.test(n.t + ' ' + n.b.slice(0, 160)) && !SPAM.test(n.t) && (!n.date || new Date(n.date) > cut))
+  items = items.filter(n => n.t && n.t.length > 30 && /\s/.test(n.t.replace(pl.city, '')) && n.t.toLowerCase() !== `${pl.city}, ${pl.state}`.toLowerCase() && n.t.toLowerCase().includes(pl.city.toLowerCase()) && !BAD.test(n.t + ' ' + n.b.slice(0, 160)) && !SPAM.test(n.t) && (!n.date || new Date(n.date) > cut))
     .map(n => ({ ...n, t: n.t.replace(/\s*\((photos|video|watch)\)/ig, '').replace(/\.?\s*Here'?’?s (why|when|what|how).*$/i, '') }));
   const seen = new Set(), out = [];
   for (const n of items.sort((a, b) => new Date(b.date) - new Date(a.date))) { const key = n.t.toLowerCase().replace(/[^a-z]/g, '').slice(0, 30); if (seen.has(key)) continue; seen.add(key); out.push(n); if (out.length >= 10) break; }
