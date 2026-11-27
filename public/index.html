@@ -545,7 +545,7 @@ function localCity(){return localData&&localData.place?localData.place.city:'you
 function oldSrc(){return S.zipOld&&S.zipOld!==S.zip&&localOld?localOld:localData}
 function oldCity(){const d=oldSrc();return d&&d.place?d.place.city:'your town'}
 function oldList(){const d=oldSrc();if(!d)return[];const H=d.history||[];
-  return d===localOld?H.filter(x=>x.kind==='place').concat(H.filter(x=>x.kind!=='place')):H}
+  const P=H.filter(x=>x.kind==='place'),C=H.filter(x=>x.kind==='crime'),O=H.filter(x=>x.kind!=='place'&&x.kind!=='crime');const mix=(a,b)=>{const r=[];for(let k=0;k<Math.max(a.length,b.length);k++){if(a[k])r.push(a[k]);if(b[k])r.push(b[k])}return r};return d===localOld?mix(P,C).concat(O):mix(O,C).concat(P)}
 function localBtns(){if(!S.zip&&!S.zipOld)return null;const row=h('div',{class:'row',style:'margin-top:10px;gap:10px'});
   const draw=()=>{row.innerHTML='';row.append(
     S.zip?h('button',{class:'btn',style:'min-height:58px',onclick:()=>localView('news')},`🏠 Around ${localCity()}`):null,
@@ -559,7 +559,7 @@ function localView(kind){beep('tap');const c=kind==='news'?localCity():oldCity()
   const draw=()=>{const L=list();box.innerHTML='';
     if(!L.length){box.append(h('div',{class:'msg'},localData?(kind==='news'?`No happy news from ${c} this week. Try “Long ago” instead!`:'No old stories found yet.'):'Loading…'));return}
     i=i%L.length;const it=L[i];store.set(key,(i+1)%L.length);
-    const head=kind==='news'?`🏠 ${c} news${it.src?' · '+it.src:''}`:`🕰️ ${isOld?(it.kind==='place'?'Your old neighborhood':`Old ${c}`):(it.kind==='place'?'A place near you':'Your town’s history')} · ${i+1} of ${L.length}`;
+    const head=kind==='news'?`🏠 ${c} news${it.src?' · '+it.src:''}`:it.kind==='crime'?`🔎 True crime from ${c} · ${i+1} of ${L.length}`:`🕰️ ${isOld?(it.kind==='place'?'Your old neighborhood':`Old ${c}`):(it.kind==='place'?'A place near you':'Your town’s history')} · ${i+1} of ${L.length}`;
     const intro=isOld&&i===0?`You used to live in ${c}, ${N()}. Let’s take a trip back. `:'';
     const txt=intro+it.t+'. '+(it.b||'');
     box.append(h('div',{class:'nh'},head),
@@ -585,8 +585,9 @@ const GAMES=[
  {t:'Word Builder',d:'Make words from letter tiles',ic:'🔤',fn:()=>wordBuilder()},
  {t:'Crazy Eights',d:'Match the suit or the number',ic:'🃏',fn:()=>crazy()},
  {t:'Left Right Center',d:'Roll the dice and pass the chips',ic:'🎲',fn:()=>lrc()},
+ {t:'Whodunit',d:'Listen to the clues and solve the case',ic:'🕵️',fn:()=>whodunit()},
 ];
-const APP_VERSION='9.6',APP_DATE='November 27, 2026';
+const APP_VERSION='9.7',APP_DATE='November 27, 2026';
 let homeTab='today';
 function home(tab){if(typeof tab==='string')homeTab=tab;stopTimers();inGame=false;document.querySelectorAll('.ov').forEach(o=>o.remove());if(!S.name.trim())return welcome();app.innerHTML='';
   const hr=new Date().getHours();const g=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
@@ -1837,7 +1838,7 @@ function storyShow(st){const layer=h('div',{class:'exlayer'});document.body.appe
   const pauseBtn=h('button',{class:'btn alt',onclick:()=>{if(paused){paused=false;pauseBtn.textContent='⏸ Pause';voiceResume()}else{paused=true;pauseBtn.textContent='▶ Keep reading';voicePause()}}},'⏸ Pause');
   const close=()=>{stopped=true;stopSay();layer.remove()};
   ctlBox=h('div',{class:'row',style:'margin:10px 0 24px'},(canSpeak||lvUse())?pauseBtn:null,h('button',{class:'btn',onclick:finish},st.myst?'I’m ready to guess ›':'I’m done ✔'));
-  layer.append(h('div',{class:'wrap',style:'max-width:760px'},h('div',{class:'top'},h('div'),h('h1',{},'📚 Story Time'),h('div')),
+  layer.append(h('div',{class:'wrap',style:'max-width:760px'},h('div',{class:'top'},h('div'),h('h1',{},(st.myst?'🕵️ Whodunit':'📚 Story Time')),h('div')),
     h('h2',{style:"text-align:center;font-family:Georgia,serif;font-size:2rem;margin:6px 0 2px"},st.t),st.sub?h('div',{class:'msg small',style:'margin:0 0 10px'},st.sub):h('div',{style:'height:10px'}),
     h('div',{},paras),ctlBox));
   function hl(k){paras.forEach((p,j)=>p.style.background=j===k?'#fff3c4':'transparent');if(paras[k])paras[k].scrollIntoView({behavior:'smooth',block:'center'})}
@@ -1961,8 +1962,58 @@ const MYSTERIES=[
   'In the morning, Mrs. Whitaker found a pair of gardening gloves by the flower bed, caked with fresh mud. Inside the cuff, in neat black ink, it said: “PAUL.”',
   'Paul’s face turned pink. “I only wanted to plant them in my own yard,” he admitted.'],
   q:'Who dug up the tulip bulbs?',a:['Her nephew Paul','Mr. Ross the gardener','Mrs. Lane the neighbor','A hungry squirrel'],
-  why:'The muddy gloves left behind had Paul’s name written inside the cuff.'}];
+  why:'The muddy gloves left behind had Paul’s name written inside the cuff.'},
+ {t:'The Case of the Diamond Necklace',myst:true,p:[
+  'Mrs. Van Dorn wore her diamond necklace to the Christmas party at the Hotel Statler. At ten o’clock she went to powder her nose, and left the necklace in its velvet box on the table.',
+  'When she came back, the box was empty. The detective asked three people where they had been.',
+  'The waiter, Louis, said he had been in the kitchen the whole time. The bandleader said he had been playing “In the Mood” on stage, and two hundred dancers saw him. And Mr. Drake, a guest, said, “I was out on the terrace having a cigar. It was a lovely warm evening.”',
+  'The detective looked out the window. It was December in Cleveland, and the terrace was covered in a foot of snow. Not a single footprint.'],
+  q:'Who took the necklace?',a:['Mr. Drake, the guest','Louis the waiter','The bandleader','Mrs. Van Dorn herself'],
+  why:'Mr. Drake said he was on a warm terrace, but it was a snowy December night and there were no footprints out there. He was lying!'},
+ {t:'The Case of the Bank Teller’s Drawer',myst:true,p:[
+  'On Friday morning, one hundred dollars was missing from Teller Window Two at the Brooklyn Savings Bank.',
+  'Only three people had a key to that drawer. Miss Collins, the teller, had been home sick on Thursday, and her doctor said so. Mr. Ward, the manager, was at a bankers’ lunch downtown all afternoon. And Eddie, the young clerk, said he had never touched the drawer.',
+  'The bank guard said the drawer was full at closing time on Thursday. So the money went missing Thursday night.',
+  'The next morning, Eddie came to work in a brand new suit, with a new hat to match. “Got paid,” he said. But payday wasn’t until the next Friday.'],
+  q:'Who took the money?',a:['Eddie the clerk','Miss Collins the teller','Mr. Ward the manager','The bank guard'],
+  why:'Eddie showed up in a brand new suit and hat, and said he got paid, but payday wasn’t for another week.'},
+ {t:'The Case of the Stolen Painting',myst:true,p:[
+  'A small painting of sailboats disappeared from the museum on a rainy Tuesday afternoon.',
+  'The guard said only three visitors came that day. A schoolteacher came at one o’clock with a big umbrella. An old man in a raincoat came at two. And a young woman came at three, wearing a thin summer dress, with no coat and no umbrella at all.',
+  'The guard found a trail of wet drops on the floor, leading from the painting to the coat rack. The schoolteacher’s umbrella was still dripping there. The old man’s raincoat was hanging beside it, and it was dry.',
+  'The guard thought, “It rained all afternoon. How could his coat be dry, unless he came in some other way, and wore it to hide something?” Inside the raincoat lining was the painting.'],
+  q:'Who took the painting?',a:['The old man in the raincoat','The schoolteacher','The young woman','The guard'],
+  why:'It rained all day, but his raincoat was bone dry. He never walked in the rain with it. He used it to hide the painting inside the lining!'},
+ {t:'The Case of the Missing Wedding Ring',myst:true,p:[
+  'At the diner on Pearl Road, Rose the waitress took off her wedding ring to wash dishes, and set it on the windowsill above the sink.',
+  'Ten minutes later, it was gone. Three people had been in the kitchen. Gus the cook was flipping pancakes and never left the grill. Mr. Novak delivered the milk and went straight back out to his truck. And Frankie, the busboy, said he had been out back emptying the trash.',
+  'Rose looked at Frankie’s hands. They were perfectly clean. Then she looked at the trash cans. They were still full to the top.',
+  'Frankie looked at his shoes. “I’m sorry, Rose,” he said, and handed it back.'],
+  q:'Who took the ring?',a:['Frankie the busboy','Gus the cook','Mr. Novak the milkman','Rose herself'],
+  why:'Frankie said he was emptying the trash, but the cans were still full and his hands were clean.'},
+ {t:'The Case of the Locked Candy Store',myst:true,p:[
+  'Every night, Mr. Sweeney locked up his candy store with the only key, which he kept on a string around his neck.',
+  'One morning, a whole jar of licorice was gone, but the door was still locked and the window was shut tight.',
+  'There was one small opening: a little coal chute in the back, only big enough for a child or a cat. Mr. Sweeney had a cat named Pepper, and his nephew Timmy was eight years old.',
+  'Under the chute, Mr. Sweeney found a smudge of coal dust, and next to it, a tiny shoe print. Pepper was asleep in her basket, licking her paws. And cats don’t like licorice anyway.'],
+  q:'Who took the licorice?',a:['Timmy, the nephew','Pepper the cat','Mr. Sweeney','A burglar with a key'],
+  why:'There was a small shoe print by the coal chute. Cats don’t wear shoes, and they don’t like licorice!'},
+ {t:'The Case of the Poisoned Pie Contest',myst:true,p:[
+  'At the church pie contest, someone sprinkled salt instead of sugar on Mrs. Kowalski’s apple pie, and the judges made terrible faces.',
+  'Three ladies had entered pies too. Mrs. Hart had won last year and badly wanted to win again. Mrs. Lee was home with a broken ankle and sent her pie with her husband. And Mrs. Burke had been at the bake table all morning, setting out forks.',
+  'The minister noticed something. Mrs. Hart’s purse was sitting open on the table, and peeking out of it was a little salt shaker, the kind from a restaurant.',
+  'Mrs. Hart turned red. “I just wanted to win one more time,” she said.'],
+  q:'Who salted the pie?',a:['Mrs. Hart','Mrs. Lee','Mrs. Burke','The minister'],
+  why:'Mrs. Hart wanted to win again, and she had a salt shaker hidden in her purse. Mrs. Lee wasn’t even there!'}];
 
+function whodunit(){const body=frame('Whodunit');const done=store.get('mystDone',[]);let fresh=MYSTERIES.filter(m=>!done.includes(m.t));if(!fresh.length){store.set('mystDone',[]);fresh=MYSTERIES.slice()}const st=fresh[0];const solved=store.get('mystSolved',0);
+  body.append(h('div',{class:'card-box',style:'max-width:720px;margin:16px auto;padding:26px;text-align:center'},
+    h('div',{style:'font-size:4.5rem'},'🕵️'),h('div',{style:'font-size:1.9rem;font-weight:700;font-family:var(--serif,Georgia,serif);margin:8px 0'},`Detective ${N()}`),
+    h('div',{class:'msg'},solved?`You’ve solved ${solved} case${solved>1?'s':''} so far!`:'Your first case is waiting.'),
+    h('div',{style:'font-size:1.4rem;margin:18px 0 6px'},'📁 Today’s case:'),h('div',{style:'font-size:1.6rem;font-weight:700'},st.t),
+    h('div',{class:'msg small',style:'margin-top:8px'},'Listen for the clues, then pick who did it.'),
+    h('button',{class:'btn good',style:'min-height:72px;font-size:1.5rem;margin-top:18px;padding:0 34px',onclick:()=>{beep('tap');storyShow(st);const t=setInterval(()=>{if(!document.querySelector('.exlayer')){clearInterval(t);if(body.isConnected)whodunit()}},700);timers.push(t)}},'🔍 Open the case')));
+  say(`Detective ${N()}, you have a new case. ${st.t}. Tap open the case when you’re ready.`)}
 function mystAsk(){const done=store.get('mystDone',[]);let fresh=MYSTERIES.filter(m=>!done.includes(m.t));if(!fresh.length){store.set('mystDone',[]);fresh=MYSTERIES.slice()}const st=fresh[0];
   beep('good');say(`Time for a mystery, ${N()}! Would you like to solve a case?`);
   modal(`🕵️ ${N()} the Detective`,`Here’s a short mystery: “${st.t}.” Listen for the clues, then pick who did it!`,[['Let’s solve it!',()=>{stopSay();storyShow(st)},'good'],['Maybe later',()=>stopSay(),'alt']],h('div',{style:'font-size:4rem'},'🔍'));return true}

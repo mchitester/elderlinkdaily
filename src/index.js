@@ -243,7 +243,7 @@ async function facRoute(request, env, url) {
 
 
 /* ---------- local news & local history by ZIP ---------- */
-const BAD = /obituar|shoot|shot\b|killed|kill|murder|death|dead|dies|died|fatal|crash|wreck|stabb|assault|arrest|charged|charges|court|sentenc|police|suspect|robbery|theft|stolen|fire\b|burn|lawsuit|sued|overdose|drug|missing|abuse|victim|investigat|indict|guilty|prison|jail|scam|fraud|layoff|closing|closes|air quality|aqi|funeral|crematory|crime|gun|weapon|bomb|threat|injur|hospitaliz|evacuat|explosion|tornado warning|recall|indict|cough|outbreak|exposed|disaster|ballot|election|levy|levies|bond|closing|close |closes|layoff|data center|lawsuit|deadly|tragic|kidnap|abduct|hostage|captiv|massacre|riot|grief|mourn|fbi|raid|searched|surgery|cosmetic|botox|lawmaker|congress|senator|governor|trump|democrat|republican|campaign|protest|immigra|ice agents|deport|strike|tariff/i;
+const BAD = /obituar|funeral|crematory|celebration of life|passed away|dies at|died at|overdose|abuse|rape|sexual|molest|child porn|kidnap|abduct|hostage|captiv|suicide|cough|outbreak|exposed|measles|flu cases|ballot|election|levy|levies|data center|layoff|closing|closes|lawmaker|congress|senator|governor|trump|democrat|republican|campaign|protest|immigra|ice agents|deport|tariff|air quality|aqi|recall/i;
 const UA = { 'User-Agent': 'ElderLinkDaily/1.0 (https://elderlinkdaily.com; family app for seniors)' };
 async function zipPlace(env, zip) {
   const k = 'zip:' + zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
@@ -255,7 +255,7 @@ async function zipPlace(env, zip) {
 const unesc = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, '');
 const SPAM = /advisor|homeowners|zip code|real estate|for sale|lawyer|attorney|dentist|plumber|roofing|insurance|mortgage|top \d+|best .* in |near me|jobs? |hiring|apartments|almanac|whooping/i;
 async function localNews(env, pl) {
-  const k = 'lnews4:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lnews5:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const qs = [`"${pl.city}" ${pl.st}`, `"${pl.city}" holiday OR festival OR parade OR concert`, `"${pl.city}" library OR park OR community OR volunteers OR opens`];
   let items = [];
   for (const q of qs) { try { const r = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=en-us&cc=us`, { headers: UA }); if (!r.ok) continue; const x = await r.text();
@@ -271,7 +271,7 @@ async function localNews(env, pl) {
 function chunks(text, max) { const sents = text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(\s|$)/g) || []; const out = []; let cur = '';
   for (const s of sents) { if ((cur + s).length > max && cur) { out.push(cur.trim()); cur = ''; } cur += s; } if (cur.trim().length > 60) out.push(cur.trim()); return out; }
 async function localHistory(env, pl) {
-  const k = 'lhist5:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
+  const k = 'lhist6:' + pl.zip; const c = await env.VOICE.get(k, 'json'); if (c) return c;
   const out = [];
   try {
     const title = `${pl.city}, ${pl.state}`;
@@ -283,13 +283,23 @@ async function localHistory(env, pl) {
   } catch (e) {}
   try {
     const g = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${pl.lat}|${pl.lon}&gsradius=10000&gslimit=50&format=json`, { headers: UA }).then(r => r.json());
-    const skip = /kidnap|abduct|hostage|massacre|riot|murder|killing|shooting|bombing|fire of|flood of|explosion|crash|disaster|scandal|trial|case$|health system|metrohealth|shopping center|commons$|steelyard|hospital|disaster|wreck|foundation|learning center|mall$|prison|jail|school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
+    const skip = /kidnap|abduct|hostage|abuse|health system|metrohealth|shopping center|commons$|steelyard|hospital|disaster|wreck|foundation|learning center|mall$|prison|jail|school|church|station|cemetery|township|county|elementary|high school|district|route|interchange|tower|\(Ohio\)$|census|precinct|ward|apartments|plaza$|road$|street$|avenue$/i;
     const titles = g.query.geosearch.map(x => x.title).filter(t => !skip.test(t) && !t.startsWith(pl.city + ',')).slice(0, 14);
     for (const t of titles) {
       try { const s = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
         if (s.extract && s.extract.length > 120 && !BAD.test(s.title + ' ' + s.extract.slice(0, 300))) out.push({ t: `Did you know? ${s.title}`, b: s.extract.slice(0, 600), kind: 'place' }); } catch (e) {}
       if (out.filter(o => o.kind === 'place').length >= 10) break;
     }
+  } catch (e) {}
+  try {
+    const q = `"${pl.city}" ${pl.state} (murder OR gangster OR mob OR robbery OR heist OR bootlegger OR detective OR "unsolved")`;
+    const g = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=20&format=json`, { headers: UA }).then(r => r.json());
+    const have = new Set(out.map(o => o.t));
+    let n = 0;
+    for (const x of g.query.search) { if (n >= 8) break; if (/^List of|season|\(film\)|\(TV|\(album|\(song|\(novel|episode|County|, Ohio$/i.test(x.title) || /kidnap|abduct|abuse|rape|sexual|child/i.test(x.title)) continue;
+      try { const s2 = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(x.title.replace(/ /g, '_')), { headers: UA }).then(r => r.json());
+        const ex = s2.extract || ''; if (ex.length < 150 || /rape|sexual|molest|abuse|child|kidnap|abduct/i.test(ex) || !ex.includes(pl.city) || have.has(s2.title)) continue;
+        out.push({ t: `True crime: ${s2.title}`, b: ex.slice(0, 700), kind: 'crime' }); n++; } catch (e) {} }
   } catch (e) {}
   if (out.length) await env.VOICE.put(k, JSON.stringify(out), { expirationTtl: 30 * 86400 });
   return out;
